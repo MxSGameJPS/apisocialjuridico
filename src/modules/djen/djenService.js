@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '../../clients/supabase.js';
 import { baixarProcessoParaCRM } from '../processos/processoService.js';
-import { consultarPublicacoesDjenPorOab } from './djenClient.js';
+import { consultarPublicacoesDjenAvancado, consultarPublicacoesDjenPorOab } from './djenClient.js';
 import { normalizarOab, normalizarUf } from './djenUtils.js';
 
 async function salvarNotificacao({ advogadoId, publicacao, processoImportadoId = null }) {
@@ -35,12 +35,12 @@ async function salvarNotificacao({ advogadoId, publicacao, processoImportadoId =
   return data;
 }
 
-async function salvarPublicacao({ advogadoId, publicacao }) {
+async function salvarPublicacao({ advogadoId = 'publico', publicacao }) {
   const payload = {
     advogado_id: advogadoId,
     numero_cnj: publicacao.numero_cnj,
-    oab: publicacao.oab,
-    uf: publicacao.uf,
+    oab: publicacao.oab || '',
+    uf: publicacao.uf || '',
     tribunal: publicacao.tribunal,
     orgao: publicacao.orgao,
     data_publicacao: publicacao.data_publicacao,
@@ -66,6 +66,31 @@ async function salvarPublicacao({ advogadoId, publicacao }) {
   return data;
 }
 
+async function salvarBuscaPublica({ filtros, resultado }) {
+  const { data, error } = await supabaseAdmin
+    .from('buscas_publicas_djen')
+    .insert({
+      fonte: 'DJEN',
+      filtros,
+      total_retornado: resultado.total_retornado,
+      url_consultada: resultado.url_consultada,
+      raw_resumo: {
+        status: resultado.raw?.status,
+        message: resultado.raw?.message,
+        count: resultado.raw?.count,
+      },
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Erro ao salvar busca pública DJEN:', error.message);
+    return null;
+  }
+
+  return data;
+}
+
 async function marcarPublicacaoProcessada({ publicacaoId, processoImportadoId = null, status = 'processada' }) {
   const { error } = await supabaseAdmin
     .from('djen_publicacoes')
@@ -81,6 +106,26 @@ async function marcarPublicacaoProcessada({ publicacaoId, processoImportadoId = 
   if (error) {
     console.error('Erro ao marcar publicação DJEN como processada:', error.message);
   }
+}
+
+export async function buscarPublicacoesDjenAvancado({ filtros, salvar = true, advogadoId = 'publico' }) {
+  const resultado = await consultarPublicacoesDjenAvancado(filtros);
+  const registros = [];
+
+  if (salvar) {
+    await salvarBuscaPublica({ filtros, resultado });
+
+    for (const publicacao of resultado.publicacoes) {
+      const registro = await salvarPublicacao({ advogadoId, publicacao });
+      registros.push(registro);
+    }
+  }
+
+  return {
+    ...resultado,
+    publicacoes_salvas: registros.length,
+    registros,
+  };
 }
 
 export async function cadastrarMonitoramentoOab({ advogadoId, usuarioId = null, oab, uf, ativo = true }) {
