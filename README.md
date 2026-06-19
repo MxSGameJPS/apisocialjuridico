@@ -30,21 +30,6 @@ cp .env.example .env
 
 Preencha o `.env` local com Supabase, DataJud, OpenAI e `API_SECRET_KEY`.
 
-Variáveis relevantes para monitoramento:
-
-```env
-PROCESS_MONITORING_ENABLED=true
-PROCESS_MONITORING_CRON="0 3 * * *"
-
-DJEN_BASE_URL=https://comunicaapi.pje.jus.br/api/v1/comunicacao
-DJEN_MONITORING_ENABLED=false
-DJEN_MONITORING_CRON="0 */6 * * *"
-DJEN_ITENS_POR_PAGINA=50
-DJEN_DIAS_RETROATIVOS=7
-```
-
-> Nunca suba o arquivo `.env` para o GitHub.
-
 ## Documentação Swagger
 
 Local:
@@ -68,6 +53,7 @@ docs/supabase-processos-importados.sql
 docs/supabase-processos-fase2.sql
 docs/supabase-processos-fase3.sql
 docs/supabase-processos-fase4-djen.sql
+docs/supabase-busca-publica-djen.sql
 ```
 
 ## Segurança interna
@@ -99,6 +85,75 @@ Consulta o DataJud, gera resumo e salva na tabela `processos_importados`.
   "numero_processo": "0000000-00.0000.8.26.0000",
   "advogado_id": "id-do-advogado",
   "usuario_id": "id-opcional-do-usuario"
+}
+```
+
+## Busca pública estilo Escavador
+
+### POST `/api/publico/djen/buscar`
+
+Busca publicações públicas no DJEN usando filtros flexíveis. Essa rota prepara a API para um produto público separado, similar a motores de busca processual.
+
+```json
+{
+  "salvar": true,
+  "filtros": {
+    "oab": "380494",
+    "uf": "SP",
+    "numero_processo": "0800039-86.2026.9.26.0060",
+    "tribunal": "TJSP",
+    "nome_parte": "ISMAEL FABRIS",
+    "nome_advogado": "JULIANA GALERA",
+    "nome_orgao": "2ª Auditoria Militar Estadual",
+    "tipo_comunicacao": "Intimação",
+    "tipo_documento": "EDITAL DE INTIMAÇÃO",
+    "data_inicio": "2026-06-01",
+    "data_fim": "2026-06-19",
+    "pagina": 1,
+    "itens_por_pagina": 50
+  }
+}
+```
+
+Filtros aceitos pela camada de normalização:
+
+```txt
+oab
+numero_oab
+uf
+uf_oab
+numero_processo
+numero_cnj
+processo
+tribunal
+sigla_tribunal
+nome_parte
+parte
+nome_destinatario
+nome_advogado
+advogado
+nome_orgao
+orgao
+tipo_comunicacao
+tipo_documento
+data_inicio
+data_fim
+data_disponibilizacao_inicio
+data_disponibilizacao_fim
+pagina
+itens_por_pagina
+parametros_extras
+```
+
+`parametros_extras` permite testar parâmetros diretos do DJEN sem alterar código:
+
+```json
+{
+  "filtros": {
+    "parametros_extras": {
+      "nomeClasse": "AGRAVO DE INSTRUMENTO"
+    }
+  }
 }
 ```
 
@@ -217,7 +272,5 @@ Executa manualmente o monitoramento de todas as OABs ativas cadastradas em `advo
 ```
 
 ## Observação
-
-Nem todo retorno do DataJud traz nomes das partes. Quando isso acontecer, a API retorna um aviso no campo `avisos` e continua entregando os dados públicos disponíveis. O frontend deve pedir ao advogado para informar ou selecionar o cliente antes de salvar no CRM.
 
 O client DJEN foi deixado configurável por `.env` porque o contrato público do serviço pode variar conforme endpoint oficial utilizado. Caso a resposta do DJEN venha com campos diferentes, ajuste a normalização em `src/modules/djen/djenClient.js`.
