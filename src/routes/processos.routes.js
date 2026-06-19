@@ -9,10 +9,21 @@ const buscarProcessoSchema = z.object({
   numero_processo: z.string().min(1, 'numero_processo é obrigatório'),
 });
 
+const pessoaCRMSchema = z.object({
+  nome: z.string().min(1, 'nome é obrigatório').optional().nullable(),
+  tipo: z.enum(['pessoa_fisica', 'pessoa_juridica', 'nao_informado']).optional().nullable(),
+  documento: z.string().optional().nullable(),
+  email: z.string().email('email inválido').optional().nullable(),
+  telefone: z.string().optional().nullable(),
+  observacoes: z.string().optional().nullable(),
+}).optional().nullable();
+
 const baixarProcessoSchema = z.object({
   numero_processo: z.string().min(1, 'numero_processo é obrigatório'),
   advogado_id: z.string().min(1, 'advogado_id é obrigatório'),
   usuario_id: z.string().optional().nullable(),
+  cliente: pessoaCRMSchema,
+  parte_contraria: pessoaCRMSchema,
 });
 
 export async function processosRoutes(app) {
@@ -51,6 +62,8 @@ export async function processosRoutes(app) {
       numeroProcesso: parsed.data.numero_processo,
       advogadoId: parsed.data.advogado_id,
       usuarioId: parsed.data.usuario_id,
+      cliente: parsed.data.cliente,
+      parteContraria: parsed.data.parte_contraria,
     });
 
     return {
