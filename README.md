@@ -12,6 +12,7 @@ API interna do Social Jurídico para importação, normalização, resumo e moni
 - Zod
 - DataJud/CNJ
 - OpenAI para resumo das movimentações
+- Node Cron para monitoramento automático
 
 ## Instalação
 
@@ -27,6 +28,13 @@ cp .env.example .env
 ```
 
 Preencha o `.env` local com Supabase, DataJud, OpenAI e `API_SECRET_KEY`.
+
+Variáveis relevantes para monitoramento:
+
+```env
+PROCESS_MONITORING_ENABLED=true
+PROCESS_MONITORING_CRON="0 3 * * *"
+```
 
 > Nunca suba o arquivo `.env` para o GitHub.
 
@@ -51,6 +59,7 @@ Execute no Supabase:
 ```txt
 docs/supabase-processos-importados.sql
 docs/supabase-processos-fase2.sql
+docs/supabase-processos-fase3.sql
 ```
 
 ## Segurança interna
@@ -89,19 +98,7 @@ Consulta o DataJud, gera resumo e salva na tabela `processos_importados`.
 {
   "numero_processo": "0000000-00.0000.8.26.0000",
   "advogado_id": "id-do-advogado",
-  "usuario_id": "id-opcional-do-usuario",
-  "cliente": {
-    "nome": "Nome do Cliente",
-    "tipo": "pessoa_fisica",
-    "documento": "000.000.000-00",
-    "email": "cliente@email.com",
-    "telefone": "(11) 99999-9999"
-  },
-  "parte_contraria": {
-    "nome": "Nome da Parte Contrária",
-    "tipo": "pessoa_juridica",
-    "documento": "00.000.000/0001-00"
-  }
+  "usuario_id": "id-opcional-do-usuario"
 }
 ```
 
@@ -120,25 +117,6 @@ Importa vários CNJs em sequência, detecta duplicados e retorna relatório por 
     "10033944320248260394",
     "1003394-43.2024.8.26.0394"
   ]
-}
-```
-
-Retorno resumido:
-
-```json
-{
-  "success": true,
-  "message": "Importação em lote processada.",
-  "data": {
-    "resumo": {
-      "total": 2,
-      "importados": 1,
-      "atualizados": 0,
-      "duplicados": 1,
-      "erros": 0
-    },
-    "resultados": []
-  }
 }
 ```
 
@@ -166,6 +144,48 @@ Atualiza vários processos manualmente.
     "10033944320248260394",
     "00000000000000000000"
   ]
+}
+```
+
+## Fase 3 — Monitoramento automático DataJud
+
+A API executa automaticamente uma rotina de monitoramento conforme `PROCESS_MONITORING_CRON`.
+
+A rotina:
+
+- busca processos importados;
+- consulta novamente o DataJud;
+- compara movimentações anteriores e atuais;
+- atualiza capa, movimentações e resumo IA;
+- registra logs em `processos_monitoramento_logs`;
+- marca status como `novas_movimentacoes`, `sem_novidades` ou `erro`.
+
+### POST `/api/monitoramento/datajud/executar`
+
+Executa o monitoramento manualmente.
+
+```json
+{
+  "advogado_id": "id-opcional-do-advogado",
+  "limite": 25
+}
+```
+
+Retorno resumido:
+
+```json
+{
+  "success": true,
+  "message": "Monitoramento DataJud executado com sucesso.",
+  "data": {
+    "resumo": {
+      "total": 10,
+      "com_novidades": 1,
+      "sem_novidades": 8,
+      "erros": 1
+    },
+    "resultados": []
+  }
 }
 ```
 
