@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage / tests
+coverage/
+.nyc_output/
+
+# Build outputs
+dist/
+build/
+.tmp/
+tmp/
+
+# Cache
+.cache/
+.eslintcache
+.parcel-cache/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker / local volumes
+.docker/
+volumes/
+
+# Supabase local
+.supabase/
+
+# Misc
+*.tgz
