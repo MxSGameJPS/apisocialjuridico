@@ -9,6 +9,8 @@ create table if not exists public.processos_importados (
   parte_principal jsonb null,
   demais_partes jsonb not null default '[]'::jsonb,
   partes jsonb not null default '[]'::jsonb,
+  cliente_manual jsonb null,
+  parte_contraria_manual jsonb null,
   ultimas_movimentacoes jsonb not null default '[]'::jsonb,
   resumo_ia text null,
   resumo_ia_gerado boolean not null default false,
@@ -21,6 +23,12 @@ create table if not exists public.processos_importados (
   constraint processos_importados_numero_advogado_unique unique (numero_cnj, advogado_id)
 );
 
+alter table public.processos_importados
+  add column if not exists cliente_manual jsonb null;
+
+alter table public.processos_importados
+  add column if not exists parte_contraria_manual jsonb null;
+
 create index if not exists processos_importados_numero_cnj_idx
   on public.processos_importados (numero_cnj);
 
@@ -29,3 +37,6 @@ create index if not exists processos_importados_advogado_id_idx
 
 create index if not exists processos_importados_tribunal_codigo_idx
   on public.processos_importados (tribunal_codigo);
+
+create index if not exists processos_importados_cliente_manual_nome_idx
+  on public.processos_importados ((cliente_manual->>'nome'));
