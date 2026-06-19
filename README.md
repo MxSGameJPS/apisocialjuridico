@@ -10,18 +10,13 @@ API interna do Social Jurídico para importação, normalização, resumo e moni
 - Supabase Admin Client
 - Zod
 - DataJud/CNJ
-- OpenAI, futuramente para resumo das movimentações
-
-## Requisitos
-
-- Node.js 20+
-- Conta Supabase configurada
-- `.env` local preenchido
+- OpenAI para resumo das movimentações
 
 ## Instalação
 
 ```bash
 npm install
+npm run dev
 ```
 
 ## Configuração
@@ -32,99 +27,62 @@ Copie o arquivo de exemplo:
 cp .env.example .env
 ```
 
-Preencha as variáveis:
-
-```env
-PORT=3333
-API_SECRET_KEY=sua_chave_forte
-SUPABASE_URL=sua_url_supabase
-SUPABASE_ANON_KEY=sua_anon_key
-SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key
-DATAJUD_API_KEY=sua_chave_datajud
-OPENAI_API_KEY=sua_chave_openai
-```
+Preencha o `.env` local com Supabase, DataJud, OpenAI e `API_SECRET_KEY`.
 
 > Nunca suba o arquivo `.env` para o GitHub.
 
-## Rodar em desenvolvimento
+## Banco de dados
 
-```bash
-npm run dev
-```
+Execute no Supabase o SQL em:
 
-## Verificar ambiente
-
-```bash
-npm run check:env
-```
-
-## Rotas iniciais
-
-### GET `/`
-
-Retorna informações básicas da API.
-
-### GET `/health`
-
-Retorna status da API.
-
-Exemplo:
-
-```json
-{
-  "success": true,
-  "service": "apisocialjuridico",
-  "status": "online"
-}
+```txt
+docs/supabase-processos-importados.sql
 ```
 
 ## Segurança interna
 
-Rotas sensíveis deverão usar o header:
+Rotas sensíveis usam o header:
 
 ```http
 x-api-key: sua_API_SECRET_KEY
 ```
 
-O middleware já está criado em:
+## Rotas
 
-```txt
-src/middlewares/internalAuth.js
-```
+### GET `/`
 
-## Próximos módulos planejados
+Informações básicas da API.
 
-```txt
-src/modules/processos
-src/modules/datajud
-src/modules/tribunais
-src/modules/ia
-src/jobs
-```
+### GET `/health`
 
-## MVP proposto
+Status da API.
 
-Primeiro endpoint funcional:
+### POST `/api/processos/buscar`
 
-```http
-POST /api/processos/importar
-```
+Consulta o DataJud pelo número CNJ e retorna os dados para conferência antes de salvar.
 
-Entrada prevista:
+Body:
 
 ```json
 {
-  "numero_cnj": "0000000-00.0000.8.26.0000",
-  "advogado_id": "id-do-advogado"
+  "numero_processo": "0000000-00.0000.8.26.0000"
 }
 ```
 
-Fluxo:
+### POST `/api/processos/baixar`
 
-1. Validar número CNJ.
-2. Identificar tribunal pelo número.
-3. Consultar DataJud.
-4. Normalizar capa, partes e movimentações.
-5. Gerar resumo por IA.
-6. Salvar no Supabase.
-7. Retornar processo importado.
+Consulta o DataJud, gera resumo e salva na tabela `processos_importados`.
+
+Body:
+
+```json
+{
+  "numero_processo": "0000000-00.0000.8.26.0000",
+  "advogado_id": "id-do-advogado",
+  "usuario_id": "id-opcional-do-usuario"
+}
+```
+
+## Observação
+
+Nem todo retorno do DataJud traz nomes das partes. Quando isso acontecer, a API retorna um aviso no campo `avisos` e continua entregando os dados públicos disponíveis.
