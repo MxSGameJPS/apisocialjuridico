@@ -4,6 +4,7 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { env } from './config/env.js';
 import { openApiDocument } from './docs/openapi.js';
+import { iniciarMonitoramentoAutomatico, pararMonitoramentoAutomatico } from './jobs/processMonitorJob.js';
 import { registerRoutes } from './routes/index.js';
 
 export async function buildApp() {
@@ -31,6 +32,12 @@ export async function buildApp() {
   });
 
   await registerRoutes(app);
+
+  iniciarMonitoramentoAutomatico(app);
+
+  app.addHook('onClose', async () => {
+    pararMonitoramentoAutomatico();
+  });
 
   app.setErrorHandler((error, request, reply) => {
     request.log.error(error);
