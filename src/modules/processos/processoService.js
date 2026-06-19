@@ -8,6 +8,25 @@ import {
 import { normalizarProcessoDataJud } from './processoNormalizer.js';
 import { gerarResumoProcesso } from './processoResumoService.js';
 
+function normalizarPessoaCRM(pessoa) {
+  if (!pessoa) return null;
+
+  const temAlgumDado = Object.values(pessoa).some((valor) => {
+    return valor !== null && valor !== undefined && String(valor).trim() !== '';
+  });
+
+  if (!temAlgumDado) return null;
+
+  return {
+    nome: pessoa.nome || null,
+    tipo: pessoa.tipo || 'nao_informado',
+    documento: pessoa.documento || null,
+    email: pessoa.email || null,
+    telefone: pessoa.telefone || null,
+    observacoes: pessoa.observacoes || null,
+  };
+}
+
 export async function buscarProcessoPorNumero(numeroProcesso) {
   if (!validarNumeroCNJ(numeroProcesso)) {
     const error = new Error('Número do processo inválido. Informe o número CNJ completo com 20 dígitos.');
@@ -49,7 +68,13 @@ export async function buscarProcessoPorNumero(numeroProcesso) {
   };
 }
 
-export async function baixarProcessoParaCRM({ numeroProcesso, advogadoId, usuarioId = null }) {
+export async function baixarProcessoParaCRM({
+  numeroProcesso,
+  advogadoId,
+  usuarioId = null,
+  cliente = null,
+  parteContraria = null,
+}) {
   if (!advogadoId) {
     const error = new Error('advogado_id é obrigatório para baixar o processo para o CRM.');
     error.statusCode = 400;
@@ -57,6 +82,8 @@ export async function baixarProcessoParaCRM({ numeroProcesso, advogadoId, usuari
   }
 
   const processo = await buscarProcessoPorNumero(numeroProcesso);
+  const clienteManual = normalizarPessoaCRM(cliente);
+  const parteContrariaManual = normalizarPessoaCRM(parteContraria);
 
   const payload = {
     numero_cnj: processo.numero_cnj,
@@ -68,6 +95,8 @@ export async function baixarProcessoParaCRM({ numeroProcesso, advogadoId, usuari
     parte_principal: processo.parte_principal,
     demais_partes: processo.demais_partes,
     partes: processo.partes,
+    cliente_manual: clienteManual,
+    parte_contraria_manual: parteContrariaManual,
     ultimas_movimentacoes: processo.ultimas_movimentacoes,
     resumo_ia: processo.resumo_ia,
     resumo_ia_gerado: processo.resumo_ia_gerado,
@@ -92,7 +121,11 @@ export async function baixarProcessoParaCRM({ numeroProcesso, advogadoId, usuari
   }
 
   return {
-    processo,
+    processo: {
+      ...processo,
+      cliente_manual: clienteManual,
+      parte_contraria_manual: parteContrariaManual,
+    },
     registro: data,
   };
 }
