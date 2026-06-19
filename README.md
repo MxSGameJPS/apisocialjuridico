@@ -56,6 +56,13 @@ Execute no Supabase o SQL em:
 docs/supabase-processos-importados.sql
 ```
 
+Se a tabela já existir, execute novamente o SQL para adicionar as colunas:
+
+```txt
+cliente_manual
+parte_contraria_manual
+```
+
 ## Segurança interna
 
 Rotas sensíveis usam o header:
@@ -90,16 +97,42 @@ Body:
 
 Consulta o DataJud, gera resumo e salva na tabela `processos_importados`.
 
+Quando o DataJud não retornar as partes, o frontend pode enviar os dados manuais do cliente para vincular corretamente o processo ao CRM.
+
 Body:
 
 ```json
 {
   "numero_processo": "0000000-00.0000.8.26.0000",
   "advogado_id": "id-do-advogado",
-  "usuario_id": "id-opcional-do-usuario"
+  "usuario_id": "id-opcional-do-usuario",
+  "cliente": {
+    "nome": "Nome do Cliente",
+    "tipo": "pessoa_fisica",
+    "documento": "000.000.000-00",
+    "email": "cliente@email.com",
+    "telefone": "(11) 99999-9999",
+    "observacoes": "Cliente informado manualmente pelo advogado."
+  },
+  "parte_contraria": {
+    "nome": "Nome da Parte Contrária",
+    "tipo": "pessoa_juridica",
+    "documento": "00.000.000/0001-00"
+  }
 }
+```
+
+Campos aceitos em `cliente` e `parte_contraria`:
+
+```txt
+nome
+tipo: pessoa_fisica | pessoa_juridica | nao_informado
+documento
+email
+telefone
+observacoes
 ```
 
 ## Observação
 
-Nem todo retorno do DataJud traz nomes das partes. Quando isso acontecer, a API retorna um aviso no campo `avisos` e continua entregando os dados públicos disponíveis.
+Nem todo retorno do DataJud traz nomes das partes. Quando isso acontecer, a API retorna um aviso no campo `avisos` e continua entregando os dados públicos disponíveis. O frontend deve pedir ao advogado para informar ou selecionar o cliente antes de salvar no CRM.
