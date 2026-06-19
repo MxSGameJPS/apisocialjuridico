@@ -7,6 +7,7 @@ API interna do Social Jurídico para importação, normalização, resumo e moni
 - Node.js
 - JavaScript ES Modules
 - Fastify
+- Swagger/OpenAPI
 - Supabase Admin Client
 - Zod
 - DataJud/CNJ
@@ -30,6 +31,22 @@ cp .env.example .env
 Preencha o `.env` local com Supabase, DataJud, OpenAI e `API_SECRET_KEY`.
 
 > Nunca suba o arquivo `.env` para o GitHub.
+
+## Documentação Swagger
+
+Com a API rodando, acesse:
+
+```txt
+http://localhost:3333/docs
+```
+
+Em produção temporária:
+
+```txt
+https://n8n.socialjuridico.com.br/docs
+```
+
+A documentação mostra endpoints, métodos, headers, bodies e schemas de resposta.
 
 ## Banco de dados
 
