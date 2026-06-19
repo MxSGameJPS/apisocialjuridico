@@ -22,8 +22,6 @@ npm run dev
 
 ## Configuração
 
-Copie o arquivo de exemplo:
-
 ```bash
 cp .env.example .env
 ```
@@ -34,33 +32,25 @@ Preencha o `.env` local com Supabase, DataJud, OpenAI e `API_SECRET_KEY`.
 
 ## Documentação Swagger
 
-Com a API rodando, acesse:
+Local:
 
 ```txt
 http://localhost:3333/docs
 ```
 
-Em produção temporária:
+Produção temporária:
 
 ```txt
 https://n8n.socialjuridico.com.br/docs
 ```
 
-A documentação mostra endpoints, métodos, headers, bodies e schemas de resposta.
-
 ## Banco de dados
 
-Execute no Supabase o SQL em:
+Execute no Supabase:
 
 ```txt
 docs/supabase-processos-importados.sql
-```
-
-Se a tabela já existir, execute novamente o SQL para adicionar as colunas:
-
-```txt
-cliente_manual
-parte_contraria_manual
+docs/supabase-processos-fase2.sql
 ```
 
 ## Segurança interna
@@ -71,7 +61,7 @@ Rotas sensíveis usam o header:
 x-api-key: sua_API_SECRET_KEY
 ```
 
-## Rotas
+## Rotas principais
 
 ### GET `/`
 
@@ -85,8 +75,6 @@ Status da API.
 
 Consulta o DataJud pelo número CNJ e retorna os dados para conferência antes de salvar.
 
-Body:
-
 ```json
 {
   "numero_processo": "0000000-00.0000.8.26.0000"
@@ -96,10 +84,6 @@ Body:
 ### POST `/api/processos/baixar`
 
 Consulta o DataJud, gera resumo e salva na tabela `processos_importados`.
-
-Quando o DataJud não retornar as partes, o frontend pode enviar os dados manuais do cliente para vincular corretamente o processo ao CRM.
-
-Body:
 
 ```json
 {
@@ -111,8 +95,7 @@ Body:
     "tipo": "pessoa_fisica",
     "documento": "000.000.000-00",
     "email": "cliente@email.com",
-    "telefone": "(11) 99999-9999",
-    "observacoes": "Cliente informado manualmente pelo advogado."
+    "telefone": "(11) 99999-9999"
   },
   "parte_contraria": {
     "nome": "Nome da Parte Contrária",
@@ -122,15 +105,68 @@ Body:
 }
 ```
 
-Campos aceitos em `cliente` e `parte_contraria`:
+## Fase 2 — Importação em lote e atualização manual
 
-```txt
-nome
-tipo: pessoa_fisica | pessoa_juridica | nao_informado
-documento
-email
-telefone
-observacoes
+### POST `/api/processos/importar-lote`
+
+Importa vários CNJs em sequência, detecta duplicados e retorna relatório por processo.
+
+```json
+{
+  "advogado_id": "id-do-advogado",
+  "usuario_id": "id-opcional-do-usuario",
+  "ignorar_duplicados": true,
+  "processos": [
+    "10033944320248260394",
+    "1003394-43.2024.8.26.0394"
+  ]
+}
+```
+
+Retorno resumido:
+
+```json
+{
+  "success": true,
+  "message": "Importação em lote processada.",
+  "data": {
+    "resumo": {
+      "total": 2,
+      "importados": 1,
+      "atualizados": 0,
+      "duplicados": 1,
+      "erros": 0
+    },
+    "resultados": []
+  }
+}
+```
+
+### POST `/api/processos/atualizar`
+
+Atualiza manualmente um processo já importado, consultando novamente o DataJud e gerando novo resumo IA.
+
+```json
+{
+  "numero_processo": "10033944320248260394",
+  "advogado_id": "id-do-advogado",
+  "usuario_id": "id-opcional-do-usuario"
+}
+```
+
+### POST `/api/processos/atualizar-lote`
+
+Atualiza vários processos manualmente.
+
+```json
+{
+  "advogado_id": "id-do-advogado",
+  "usuario_id": "id-opcional-do-usuario",
+  "processos": [
+    "10033944320248260394",
+    "00000000000000000000"
+  ]
+}
 ```
 
 ## Observação
