@@ -1,4 +1,5 @@
 import { env } from '../../config/env.js';
+import { limparNumeroCNJ } from '../tribunais/tribunalDetector.js';
 
 export async function buscarProcessoNoDataJud({ numeroCNJ, tribunal }) {
   if (!env.DATAJUD_API_KEY) {
@@ -9,6 +10,7 @@ export async function buscarProcessoNoDataJud({ numeroCNJ, tribunal }) {
     throw new Error('Tribunal não suportado para consulta no DataJud.');
   }
 
+  const numeroProcessoDataJud = limparNumeroCNJ(numeroCNJ);
   const endpoint = `${env.DATAJUD_BASE_URL}/api_publica_${tribunal.aliasDataJud}/_search`;
 
   const body = {
@@ -18,7 +20,7 @@ export async function buscarProcessoNoDataJud({ numeroCNJ, tribunal }) {
         must: [
           {
             match: {
-              numeroProcesso: numeroCNJ,
+              numeroProcesso: numeroProcessoDataJud,
             },
           },
         ],
