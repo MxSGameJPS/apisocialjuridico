@@ -1,5 +1,5 @@
 import { env } from '../../config/env.js';
-import { limparNumeroCNJ } from '../tribunais/tribunalDetector.js';
+import { formatarNumeroCNJ, limparNumeroCNJ } from '../tribunais/tribunalDetector.js';
 
 export async function buscarProcessoNoDataJud({ numeroCNJ, tribunal }) {
   if (!env.DATAJUD_API_KEY) {
@@ -10,20 +10,23 @@ export async function buscarProcessoNoDataJud({ numeroCNJ, tribunal }) {
     throw new Error('Tribunal não suportado para consulta no DataJud.');
   }
 
-  const numeroProcessoDataJud = limparNumeroCNJ(numeroCNJ);
+  const numeroLimpo = limparNumeroCNJ(numeroCNJ);
+  const numeroFormatado = formatarNumeroCNJ(numeroCNJ);
   const endpoint = `${env.DATAJUD_BASE_URL}/api_publica_${tribunal.aliasDataJud}/_search`;
 
   const body = {
     size: 1,
     query: {
       bool: {
-        must: [
-          {
-            match: {
-              numeroProcesso: numeroProcessoDataJud,
-            },
-          },
+        should: [
+          { term: { numeroProcesso: numeroLimpo } },
+          { match_phrase: { numeroProcesso: numeroLimpo } },
+          { match: { numeroProcesso: numeroLimpo } },
+          { term: { numeroProcesso: numeroFormatado } },
+          { match_phrase: { numeroProcesso: numeroFormatado } },
+          { match: { numeroProcesso: numeroFormatado } },
         ],
+        minimum_should_match: 1,
       },
     },
     sort: [
