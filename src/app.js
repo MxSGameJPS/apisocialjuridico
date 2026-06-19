@@ -4,6 +4,7 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { env } from './config/env.js';
 import { openApiDocument } from './docs/openapi.js';
+import { iniciarMonitoramentoDjenAutomatico, pararMonitoramentoDjenAutomatico } from './jobs/djenMonitorJob.js';
 import { iniciarMonitoramentoAutomatico, pararMonitoramentoAutomatico } from './jobs/processMonitorJob.js';
 import { registerRoutes } from './routes/index.js';
 
@@ -34,9 +35,11 @@ export async function buildApp() {
   await registerRoutes(app);
 
   iniciarMonitoramentoAutomatico(app);
+  iniciarMonitoramentoDjenAutomatico(app);
 
   app.addHook('onClose', async () => {
     pararMonitoramentoAutomatico();
+    pararMonitoramentoDjenAutomatico();
   });
 
   app.setErrorHandler((error, request, reply) => {
@@ -45,6 +48,7 @@ export async function buildApp() {
     return reply.code(error.statusCode || 500).send({
       success: false,
       message: error.message || 'Erro interno da API.',
+      externalStatus: error.externalStatus,
     });
   });
 
