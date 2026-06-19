@@ -11,6 +11,7 @@ API interna do Social Jurídico para importação, normalização, resumo e moni
 - Supabase Admin Client
 - Zod
 - DataJud/CNJ
+- DJEN configurável por endpoint
 - OpenAI para resumo das movimentações
 - Node Cron para monitoramento automático
 
@@ -34,6 +35,12 @@ Variáveis relevantes para monitoramento:
 ```env
 PROCESS_MONITORING_ENABLED=true
 PROCESS_MONITORING_CRON="0 3 * * *"
+
+DJEN_BASE_URL=https://comunicaapi.pje.jus.br/api/v1/comunicacao
+DJEN_MONITORING_ENABLED=false
+DJEN_MONITORING_CRON="0 */6 * * *"
+DJEN_ITENS_POR_PAGINA=50
+DJEN_DIAS_RETROATIVOS=7
 ```
 
 > Nunca suba o arquivo `.env` para o GitHub.
@@ -60,6 +67,7 @@ Execute no Supabase:
 docs/supabase-processos-importados.sql
 docs/supabase-processos-fase2.sql
 docs/supabase-processos-fase3.sql
+docs/supabase-processos-fase4-djen.sql
 ```
 
 ## Segurança interna
@@ -71,14 +79,6 @@ x-api-key: sua_API_SECRET_KEY
 ```
 
 ## Rotas principais
-
-### GET `/`
-
-Informações básicas da API.
-
-### GET `/health`
-
-Status da API.
 
 ### POST `/api/processos/buscar`
 
@@ -149,17 +149,6 @@ Atualiza vários processos manualmente.
 
 ## Fase 3 — Monitoramento automático DataJud
 
-A API executa automaticamente uma rotina de monitoramento conforme `PROCESS_MONITORING_CRON`.
-
-A rotina:
-
-- busca processos importados;
-- consulta novamente o DataJud;
-- compara movimentações anteriores e atuais;
-- atualiza capa, movimentações e resumo IA;
-- registra logs em `processos_monitoramento_logs`;
-- marca status como `novas_movimentacoes`, `sem_novidades` ou `erro`.
-
 ### POST `/api/monitoramento/datajud/executar`
 
 Executa o monitoramento manualmente.
@@ -171,24 +160,64 @@ Executa o monitoramento manualmente.
 }
 ```
 
-Retorno resumido:
+## Fase 4 — DJEN por OAB
+
+### POST `/api/djen/monitoramentos`
+
+Cadastra uma OAB para monitoramento.
 
 ```json
 {
-  "success": true,
-  "message": "Monitoramento DataJud executado com sucesso.",
-  "data": {
-    "resumo": {
-      "total": 10,
-      "com_novidades": 1,
-      "sem_novidades": 8,
-      "erros": 1
-    },
-    "resultados": []
-  }
+  "advogado_id": "id-do-advogado",
+  "usuario_id": "id-opcional-do-usuario",
+  "oab": "123456",
+  "uf": "SP",
+  "ativo": true
+}
+```
+
+### POST `/api/djen/consultar`
+
+Consulta o DJEN por OAB/UF e opcionalmente salva as publicações encontradas.
+
+```json
+{
+  "advogado_id": "id-do-advogado",
+  "oab": "123456",
+  "uf": "SP",
+  "data_inicio": "2026-06-01",
+  "data_fim": "2026-06-19",
+  "salvar": true
+}
+```
+
+### POST `/api/djen/processar`
+
+Consulta, salva, extrai CNJ, cria notificação e opcionalmente importa o processo pelo DataJud.
+
+```json
+{
+  "advogado_id": "id-do-advogado",
+  "usuario_id": "id-opcional-do-usuario",
+  "oab": "123456",
+  "uf": "SP",
+  "importar_processos": false,
+  "limite": 50
+}
+```
+
+### POST `/api/djen/monitorar`
+
+Executa manualmente o monitoramento de todas as OABs ativas cadastradas em `advogados_monitoramento`.
+
+```json
+{
+  "limite_por_oab": 50
 }
 ```
 
 ## Observação
 
 Nem todo retorno do DataJud traz nomes das partes. Quando isso acontecer, a API retorna um aviso no campo `avisos` e continua entregando os dados públicos disponíveis. O frontend deve pedir ao advogado para informar ou selecionar o cliente antes de salvar no CRM.
+
+O client DJEN foi deixado configurável por `.env` porque o contrato público do serviço pode variar conforme endpoint oficial utilizado. Caso a resposta do DJEN venha com campos diferentes, ajuste a normalização em `src/modules/djen/djenClient.js`.
