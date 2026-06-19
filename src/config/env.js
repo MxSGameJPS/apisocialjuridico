@@ -13,6 +13,13 @@ const envSchema = z.object({
   DATAJUD_BASE_URL: z.string().url().default('https://api-publica.datajud.cnj.jus.br'),
   DATAJUD_API_KEY: z.string().optional(),
 
+  DJEN_BASE_URL: z.string().url().default('https://comunicaapi.pje.jus.br/api/v1/comunicacao'),
+  DJEN_API_KEY: z.string().optional(),
+  DJEN_ITENS_POR_PAGINA: z.coerce.number().int().min(1).max(100).default(50),
+  DJEN_DIAS_RETROATIVOS: z.coerce.number().int().min(1).max(90).default(7),
+  DJEN_MONITORING_ENABLED: z.coerce.boolean().default(false),
+  DJEN_MONITORING_CRON: z.string().default('0 */6 * * *'),
+
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default('gpt-4.1-mini'),
 
