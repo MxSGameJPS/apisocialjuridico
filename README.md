@@ -1,6 +1,6 @@
 # API Social Jurídico
 
-API processual para DataJud, DJEN, busca pública, CRM, dossiês, inteligência jurídica, resolvedor CPF/CNPJ, API comercial e frontend público inicial.
+API processual para DataJud, DJEN, busca pública, CRM, dossiês, inteligência jurídica, resolvedor CPF/CNPJ, vínculos processuais, API comercial e frontend público inicial.
 
 ## Front público
 
@@ -40,6 +40,7 @@ docs/supabase-fases7-8-9-entidades-dossie-inteligencia.sql
 docs/supabase-fase10-busca-fulltext.sql
 docs/supabase-fase11-api-comercial.sql
 docs/supabase-cpf-cnpj-resolver.sql
+docs/supabase-cpf-cnpj-processos-vinculados.sql
 ```
 
 ## Segurança
@@ -72,7 +73,20 @@ CPF/CNPJ não costuma vir como campo público pesquisável no DJEN/DataJud. Para
 }
 ```
 
-### POST `/api/publico/resolver/cpf-cnpj`
+### POST `/api/publico/resolver/cpf-cnpj/processos/vincular`
+
+```json
+{
+  "documento": "CPF_OU_CNPJ",
+  "numero_cnj": "NUMERO_CNJ",
+  "nome_vinculado": "Nome completo autorizado",
+  "origem": "manual_autorizado",
+  "confianca": 0.95,
+  "enriquecer_datajud": true
+}
+```
+
+### POST `/api/publico/resolver/cpf-cnpj/processos/listar`
 
 ```json
 {
@@ -80,12 +94,11 @@ CPF/CNPJ não costuma vir como campo público pesquisável no DJEN/DataJud. Para
 }
 ```
 
-### POST `/api/publico/resolver/cpf-cnpj/listar`
+### POST `/api/publico/resolver/cpf-cnpj/processos/indice`
 
 ```json
 {
-  "termo": "nome",
-  "limite": 50
+  "documento": "CPF_OU_CNPJ"
 }
 ```
 
