@@ -2,12 +2,12 @@ import crypto from 'node:crypto';
 import { supabaseAdmin } from '../../clients/supabase.js';
 import { normalizarTexto, somenteDigitos } from './fase6Utils.js';
 
-function hashCpfCnpj(documento) {
+export function hashCpfCnpj(documento) {
   const digitos = somenteDigitos(documento);
   return crypto.createHash('sha256').update(digitos).digest('hex');
 }
 
-function mascararDocumento(documento) {
+export function mascararDocumento(documento) {
   const d = somenteDigitos(documento);
   if (d.length === 11) return `${d.slice(0, 3)}.***.***-${d.slice(-2)}`;
   if (d.length === 14) return `${d.slice(0, 2)}.***.***/****-${d.slice(-2)}`;
