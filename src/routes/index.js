@@ -1,5 +1,6 @@
 import { comercialRoutes } from './comercial.routes.js';
 import { djenRoutes } from './djen.routes.js';
+import { frontendRoutes } from './frontend.routes.js';
 import { healthRoutes } from './health.routes.js';
 import { monitoramentoRoutes } from './monitoramento.routes.js';
 import { processosFase2Routes } from './processos-fase2.routes.js';
@@ -11,6 +12,7 @@ import { publicoRoutes } from './publico.routes.js';
 
 export async function registerRoutes(app) {
   await app.register(healthRoutes);
+  await app.register(frontendRoutes);
   await app.register(processosRoutes);
   await app.register(processosFase2Routes);
   await app.register(monitoramentoRoutes);
@@ -24,7 +26,9 @@ export async function registerRoutes(app) {
   app.get('/', async () => ({
     success: true,
     service: 'API Social Jurídico',
-    version: '1.0.0',
-    message: 'API processual com camada comercial, API keys, rate limit e logs de uso.',
+    version: '1.1.0',
+    message: 'API processual com frontend público inicial, busca processual, API comercial e inteligência jurídica.',
+    app: '/app',
+    docs: '/docs',
   }));
 }
