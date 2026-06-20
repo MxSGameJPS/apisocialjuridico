@@ -3,6 +3,7 @@ import { internalAuth } from '../middlewares/internalAuth.js';
 import { commercialAuth, registrarUsoComercialOnResponse } from '../middlewares/commercialAuth.js';
 import { buscarProcessosFullText } from '../modules/publico/buscaFullTextService.js';
 import { gerarDossiePublico } from '../modules/publico/dossieService.js';
+import { buscarProcessosPorOabRobusto } from '../modules/publico/oabRobustaService.js';
 import { montarTimelineProcessual } from '../modules/publico/timelineService.js';
 import {
   alterarStatusApiKey,
@@ -57,6 +58,17 @@ const timelineComercialSchema = z.object({
   atualizar_datajud: z.boolean().optional().default(false),
 });
 
+const oabComercialSchema = z.object({
+  termo: z.string().optional().nullable(),
+  uf: z.string().optional().nullable(),
+  oab: z.string().optional().nullable(),
+  limite_djen: z.coerce.number().int().min(1).max(30).optional().default(20),
+  incluir_detalhes: z.boolean().optional().default(true),
+  limite_detalhes: z.coerce.number().int().min(0).max(15).optional().default(10),
+  data_inicio: z.string().optional().nullable(),
+  data_fim: z.string().optional().nullable(),
+});
+
 async function comercialPreHandler(request, reply) {
   const authResult = await commercialAuth(request, reply);
   return authResult;
@@ -109,6 +121,27 @@ export async function comercialRoutes(app) {
     if (!parsed.success) return reply.code(400).send({ success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors });
     const data = await buscarProcessosFullText({ termo: parsed.data.termo, tribunal: parsed.data.tribunal, classe: parsed.data.classe, pagina: parsed.data.pagina, porPagina: parsed.data.por_pagina, ordenarPor: parsed.data.ordenar_por });
     return { success: true, message: 'Busca comercial executada.', data };
+  });
+
+  app.post('/api/v1/oab/processos', { preHandler: comercialPreHandler }, async (request, reply) => {
+    const parsed = oabComercialSchema.safeParse(request.body || {});
+    if (!parsed.success) return reply.code(400).send({ success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors });
+
+    try {
+      const data = await buscarProcessosPorOabRobusto({
+        termo: parsed.data.termo,
+        uf: parsed.data.uf,
+        oab: parsed.data.oab,
+        limiteDjen: parsed.data.limite_djen,
+        incluirDetalhes: parsed.data.incluir_detalhes,
+        limiteDetalhes: parsed.data.limite_detalhes,
+        dataInicio: parsed.data.data_inicio,
+        dataFim: parsed.data.data_fim,
+      });
+      return { success: true, message: 'Busca comercial por OAB executada.', data };
+    } catch (error) {
+      return reply.code(error.statusCode || 500).send({ success: false, message: error.message || 'Erro ao buscar processos por OAB.' });
+    }
   });
 
   app.post('/api/v1/dossie', { preHandler: comercialPreHandler }, async (request, reply) => {
