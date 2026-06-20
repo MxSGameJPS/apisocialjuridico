@@ -168,13 +168,30 @@ async function registrarEventoSeNovo({ monitoramento, tipo, numeroCnj = null, ti
 
   const { data: exists, error: existsError } = await supabaseAdmin
     .from(EVENTOS_TABLE)
-    .select('id')
+    .select('id, lido')
     .eq('monitoramento_id', monitoramento.id)
     .eq('chave_evento', chaveEvento)
     .maybeSingle();
 
   if (existsError) throw new Error(`Erro ao verificar evento existente: ${existsError.message}`);
-  if (exists?.id) return null;
+
+  if (exists?.id) {
+    const { error: updateError } = await supabaseAdmin
+      .from(EVENTOS_TABLE)
+      .update({
+        numero_cnj: numeroCnj,
+        hash_publicacao: hashPublicacao,
+        titulo,
+        descricao,
+        fonte,
+        data_evento: dataEvento,
+        payload,
+      })
+      .eq('id', exists.id);
+
+    if (updateError) throw new Error(`Erro ao atualizar evento existente: ${updateError.message}`);
+    return null;
+  }
 
   const { data, error } = await supabaseAdmin
     .from(EVENTOS_TABLE)
