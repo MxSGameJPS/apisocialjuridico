@@ -1,6 +1,6 @@
 # API Social Jurídico
 
-API interna do Social Jurídico para importação, normalização, resumo e monitoramento de processos judiciais.
+API processual para importação, normalização, resumo, monitoramento e busca pública de processos judiciais.
 
 ## Stack inicial
 
@@ -32,14 +32,6 @@ Preencha o `.env` local com Supabase, DataJud, OpenAI e `API_SECRET_KEY`.
 
 ## Documentação Swagger
 
-Local:
-
-```txt
-http://localhost:3333/docs
-```
-
-Produção temporária:
-
 ```txt
 https://n8n.socialjuridico.com.br/docs
 ```
@@ -54,6 +46,7 @@ docs/supabase-processos-fase2.sql
 docs/supabase-processos-fase3.sql
 docs/supabase-processos-fase4-djen.sql
 docs/supabase-busca-publica-djen.sql
+docs/supabase-fase5-indice-publico-processual.sql
 ```
 
 ## Segurança interna
@@ -64,7 +57,74 @@ Rotas sensíveis usam o header:
 x-api-key: sua_API_SECRET_KEY
 ```
 
-## Rotas principais
+## Busca pública estilo Escavador
+
+### POST `/api/publico/djen/buscar`
+
+Busca publicações públicas no DJEN usando filtros flexíveis.
+
+```json
+{
+  "salvar": true,
+  "filtros": {
+    "tribunal": "TJSP",
+    "data_inicio": "2026-06-01",
+    "data_fim": "2026-06-19",
+    "itens_por_pagina": 10
+  }
+}
+```
+
+### POST `/api/publico/processos/enriquecer-busca`
+
+Busca no DJEN, extrai CNJs, consulta DataJud e salva/atualiza o índice público processual.
+
+```json
+{
+  "salvar_busca": true,
+  "usar_datajud": true,
+  "limite": 5,
+  "filtros": {
+    "tribunal": "TJSP",
+    "data_inicio": "2026-06-19",
+    "data_fim": "2026-06-19",
+    "itens_por_pagina": 5
+  }
+}
+```
+
+### POST `/api/publico/processos/enriquecer-pendentes`
+
+Pega publicações já salvas em `djen_publicacoes`, consulta DataJud e atualiza o índice público.
+
+```json
+{
+  "usar_datajud": true,
+  "limite": 10
+}
+```
+
+### POST `/api/publico/processos/buscar-indice`
+
+Busca dentro da base pública já indexada.
+
+```json
+{
+  "termo": "SABESP",
+  "tribunal": "TJSP",
+  "limite": 20
+}
+```
+
+Também aceita busca direta por CNJ:
+
+```json
+{
+  "numero_cnj": "40004565820268260069"
+}
+```
+
+## Rotas principais DataJud
 
 ### POST `/api/processos/buscar`
 
@@ -88,80 +148,9 @@ Consulta o DataJud, gera resumo e salva na tabela `processos_importados`.
 }
 ```
 
-## Busca pública estilo Escavador
-
-### POST `/api/publico/djen/buscar`
-
-Busca publicações públicas no DJEN usando filtros flexíveis. Essa rota prepara a API para um produto público separado, similar a motores de busca processual.
-
-```json
-{
-  "salvar": true,
-  "filtros": {
-    "oab": "380494",
-    "uf": "SP",
-    "numero_processo": "0800039-86.2026.9.26.0060",
-    "tribunal": "TJSP",
-    "nome_parte": "ISMAEL FABRIS",
-    "nome_advogado": "JULIANA GALERA",
-    "nome_orgao": "2ª Auditoria Militar Estadual",
-    "tipo_comunicacao": "Intimação",
-    "tipo_documento": "EDITAL DE INTIMAÇÃO",
-    "data_inicio": "2026-06-01",
-    "data_fim": "2026-06-19",
-    "pagina": 1,
-    "itens_por_pagina": 50
-  }
-}
-```
-
-Filtros aceitos pela camada de normalização:
-
-```txt
-oab
-numero_oab
-uf
-uf_oab
-numero_processo
-numero_cnj
-processo
-tribunal
-sigla_tribunal
-nome_parte
-parte
-nome_destinatario
-nome_advogado
-advogado
-nome_orgao
-orgao
-tipo_comunicacao
-tipo_documento
-data_inicio
-data_fim
-data_disponibilizacao_inicio
-data_disponibilizacao_fim
-pagina
-itens_por_pagina
-parametros_extras
-```
-
-`parametros_extras` permite testar parâmetros diretos do DJEN sem alterar código:
-
-```json
-{
-  "filtros": {
-    "parametros_extras": {
-      "nomeClasse": "AGRAVO DE INSTRUMENTO"
-    }
-  }
-}
-```
-
 ## Fase 2 — Importação em lote e atualização manual
 
 ### POST `/api/processos/importar-lote`
-
-Importa vários CNJs em sequência, detecta duplicados e retorna relatório por processo.
 
 ```json
 {
@@ -177,8 +166,6 @@ Importa vários CNJs em sequência, detecta duplicados e retorna relatório por 
 
 ### POST `/api/processos/atualizar`
 
-Atualiza manualmente um processo já importado, consultando novamente o DataJud e gerando novo resumo IA.
-
 ```json
 {
   "numero_processo": "10033944320248260394",
@@ -188,8 +175,6 @@ Atualiza manualmente um processo já importado, consultando novamente o DataJud 
 ```
 
 ### POST `/api/processos/atualizar-lote`
-
-Atualiza vários processos manualmente.
 
 ```json
 {
@@ -206,8 +191,6 @@ Atualiza vários processos manualmente.
 
 ### POST `/api/monitoramento/datajud/executar`
 
-Executa o monitoramento manualmente.
-
 ```json
 {
   "advogado_id": "id-opcional-do-advogado",
@@ -218,8 +201,6 @@ Executa o monitoramento manualmente.
 ## Fase 4 — DJEN por OAB
 
 ### POST `/api/djen/monitoramentos`
-
-Cadastra uma OAB para monitoramento.
 
 ```json
 {
@@ -232,8 +213,6 @@ Cadastra uma OAB para monitoramento.
 ```
 
 ### POST `/api/djen/consultar`
-
-Consulta o DJEN por OAB/UF e opcionalmente salva as publicações encontradas.
 
 ```json
 {
@@ -248,8 +227,6 @@ Consulta o DJEN por OAB/UF e opcionalmente salva as publicações encontradas.
 
 ### POST `/api/djen/processar`
 
-Consulta, salva, extrai CNJ, cria notificação e opcionalmente importa o processo pelo DataJud.
-
 ```json
 {
   "advogado_id": "id-do-advogado",
@@ -263,8 +240,6 @@ Consulta, salva, extrai CNJ, cria notificação e opcionalmente importa o proces
 
 ### POST `/api/djen/monitorar`
 
-Executa manualmente o monitoramento de todas as OABs ativas cadastradas em `advogados_monitoramento`.
-
 ```json
 {
   "limite_por_oab": 50
@@ -273,4 +248,4 @@ Executa manualmente o monitoramento de todas as OABs ativas cadastradas em `advo
 
 ## Observação
 
-O client DJEN foi deixado configurável por `.env` porque o contrato público do serviço pode variar conforme endpoint oficial utilizado. Caso a resposta do DJEN venha com campos diferentes, ajuste a normalização em `src/modules/djen/djenClient.js`.
+O client DJEN foi deixado configurável por `.env` porque o contrato público do serviço pode variar conforme endpoint oficial utilizado.
