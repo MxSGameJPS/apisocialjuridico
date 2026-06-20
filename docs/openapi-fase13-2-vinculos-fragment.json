@@ -1,0 +1,34 @@
+{
+  "schemas": {
+    "ConfirmarVinculoRequest": {
+      "type": "object",
+      "required": ["numero_cnj"],
+      "properties": {
+        "numero_cnj": { "type": "string" },
+        "uf": { "type": "string" },
+        "oab": { "type": "string" },
+        "tipo_vinculo": { "type": "string", "enum": ["cliente_confirmado", "parte_contraria", "ignorado", "vinculo_incorreto"] },
+        "owner_ref": { "type": "string" },
+        "plataforma_ref": { "type": "string" },
+        "parte": {
+          "type": "object",
+          "properties": {
+            "nome": { "type": "string" },
+            "polo": { "type": "string" },
+            "tipo": { "type": "string" }
+          }
+        },
+        "confianca": { "type": "number" },
+        "observacao": { "type": "string" }
+      }
+    }
+  },
+  "paths": {
+    "/api/plataformas/vinculos/confirmar": "Confirmar vinculo interno",
+    "/api/plataformas/vinculos/listar": "Listar vinculos internos",
+    "/api/plataformas/vinculos/desativar": "Desativar vinculo interno",
+    "/api/v1/vinculos/confirmar": "Confirmar vinculo comercial",
+    "/api/v1/vinculos/listar": "Listar vinculos comerciais",
+    "/api/v1/vinculos/desativar": "Desativar vinculo comercial"
+  }
+}
