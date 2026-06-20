@@ -1,6 +1,6 @@
 # API Social Jurídico
 
-API processual para importação, normalização, resumo, monitoramento, busca pública, entidades, dossiês, inteligência jurídica e busca full-text.
+API processual para DataJud, DJEN, busca pública, CRM, dossiês, inteligência jurídica e API comercial.
 
 ## Documentação Swagger
 
@@ -22,17 +22,82 @@ docs/supabase-fase5-indice-publico-processual.sql
 docs/supabase-fase6-busca-alertas-similaridade.sql
 docs/supabase-fases7-8-9-entidades-dossie-inteligencia.sql
 docs/supabase-fase10-busca-fulltext.sql
+docs/supabase-fase11-api-comercial.sql
 ```
 
 ## Segurança
+
+Admin interno:
 
 ```http
 x-api-key: sua_API_SECRET_KEY
 ```
 
-## Fase 10 — Busca full-text, ranking e paginação
+API comercial:
 
-### POST `/api/publico/busca/full-text`
+```http
+x-commercial-api-key: sj_live_xxxxx
+```
+
+## Fase 11 — API Comercial
+
+### GET `/api/comercial/planos`
+
+Lista limites dos planos `free`, `start`, `pro` e `enterprise`.
+
+### POST `/api/comercial/clientes`
+
+```json
+{
+  "nome": "Cliente API Teste",
+  "email": "cliente@empresa.com.br",
+  "documento": "00.000.000/0001-00",
+  "plano": "start",
+  "ativo": true
+}
+```
+
+### POST `/api/comercial/api-keys`
+
+```json
+{
+  "cliente_id": "uuid-do-cliente",
+  "nome": "Chave produção",
+  "plano": "start"
+}
+```
+
+A chave retorna apenas uma vez no campo `api_key`.
+
+### POST `/api/comercial/api-keys/status`
+
+```json
+{
+  "api_key_id": "uuid-da-chave",
+  "ativo": false
+}
+```
+
+### POST `/api/comercial/uso`
+
+```json
+{
+  "cliente_id": "uuid-do-cliente",
+  "limite": 100
+}
+```
+
+## API Comercial v1
+
+### POST `/api/v1/busca/processos`
+
+Header:
+
+```http
+x-commercial-api-key: sj_live_xxxxx
+```
+
+Body:
 
 ```json
 {
@@ -44,39 +109,7 @@ x-api-key: sua_API_SECRET_KEY
 }
 ```
 
-Também aceita busca direta por CNJ:
-
-```json
-{
-  "termo": "15033935120258260269",
-  "pagina": 1,
-  "por_pagina": 10
-}
-```
-
-## Fase 7 — Motor de Entidades
-
-### POST `/api/publico/entidades/extrair`
-
-```json
-{
-  "numero_cnj": "15033935120258260269"
-}
-```
-
-### POST `/api/publico/entidades/listar`
-
-```json
-{
-  "termo": "augusto",
-  "tipo": "pessoa_fisica",
-  "limite": 20
-}
-```
-
-## Fase 8 — Dossiê Público
-
-### POST `/api/publico/dossie`
+### POST `/api/v1/dossie`
 
 ```json
 {
@@ -84,59 +117,7 @@ Também aceita busca direta por CNJ:
 }
 ```
 
-## Fase 9 — Inteligência Jurídica
-
-### POST `/api/publico/inteligencia/analisar-processo`
-
-```json
-{
-  "numero_cnj": "15033935120258260269"
-}
-```
-
-### POST `/api/publico/inteligencia/recorrencia`
-
-```json
-{
-  "termo": "SABESP",
-  "tribunal": "TJSP"
-}
-```
-
-## Fase 6 — Produto público estilo Escavador
-
-### POST `/api/publico/buscar/cpf-cnpj`
-
-```json
-{
-  "documento": "537.012.468-07",
-  "buscar_djen": false,
-  "limite": 20
-}
-```
-
-### POST `/api/publico/buscar/nome`
-
-```json
-{
-  "nome": "SABESP",
-  "buscar_djen": true,
-  "limite": 20
-}
-```
-
-### POST `/api/publico/buscar/advogado`
-
-```json
-{
-  "oab": "463170",
-  "uf": "SP",
-  "buscar_djen": true,
-  "limite": 20
-}
-```
-
-### POST `/api/publico/processos/timeline`
+### POST `/api/v1/processos/timeline`
 
 ```json
 {
@@ -145,23 +126,20 @@ Também aceita busca direta por CNJ:
 }
 ```
 
-### POST `/api/publico/alertas`
+## Rotas públicas internas principais
 
-```json
-{
-  "tipo": "nome",
-  "valor": "SABESP",
-  "filtros": { "tribunal": "TJSP" },
-  "ativo": true
-}
-```
+### POST `/api/publico/busca/full-text`
 
-### POST `/api/publico/processos/similares`
+Busca full-text com ranking e paginação.
 
-```json
-{
-  "numero_cnj": "15033935120258260269",
-  "limite": 10,
-  "score_minimo": 0.12
-}
-```
+### POST `/api/publico/dossie`
+
+Dossiê público por documento, nome ou entidade.
+
+### POST `/api/publico/inteligencia/analisar-processo`
+
+Classificação heurística de área, fase, risco e sugestões.
+
+### POST `/api/publico/entidades/extrair`
+
+Extrai entidades, CPF/CNPJ, RG, nascimento e vínculos.
