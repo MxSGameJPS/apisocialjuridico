@@ -1,6 +1,6 @@
 # API Social Jurídico
 
-API processual para importação, normalização, resumo, monitoramento e busca pública de processos judiciais.
+API processual para importação, normalização, resumo, monitoramento, busca pública, entidades, dossiês e inteligência jurídica.
 
 ## Documentação Swagger
 
@@ -20,12 +20,74 @@ docs/supabase-processos-fase4-djen.sql
 docs/supabase-busca-publica-djen.sql
 docs/supabase-fase5-indice-publico-processual.sql
 docs/supabase-fase6-busca-alertas-similaridade.sql
+docs/supabase-fases7-8-9-entidades-dossie-inteligencia.sql
 ```
 
 ## Segurança
 
 ```http
 x-api-key: sua_API_SECRET_KEY
+```
+
+## Fase 7 — Motor de Entidades
+
+### POST `/api/publico/entidades/extrair`
+
+Extrai entidades, documentos, telefones, RGs e datas de nascimento do texto público indexado.
+
+```json
+{
+  "numero_cnj": "15033935120258260269"
+}
+```
+
+### POST `/api/publico/entidades/listar`
+
+```json
+{
+  "termo": "augusto",
+  "tipo": "pessoa_fisica",
+  "limite": 20
+}
+```
+
+## Fase 8 — Dossiê Público
+
+### POST `/api/publico/dossie`
+
+```json
+{
+  "documento": "537.012.468-07"
+}
+```
+
+Também aceita:
+
+```json
+{
+  "nome": "AUGUSTO SANTANA CRUZ CAMPOS"
+}
+```
+
+## Fase 9 — Inteligência Jurídica
+
+### POST `/api/publico/inteligencia/analisar-processo`
+
+```json
+{
+  "numero_cnj": "15033935120258260269"
+}
+```
+
+Retorna classificação heurística de área, fase, risco e sugestões.
+
+### POST `/api/publico/inteligencia/recorrencia`
+
+```json
+{
+  "termo": "SABESP",
+  "tribunal": "TJSP"
+}
 ```
 
 ## Fase 6 — Produto público estilo Escavador
@@ -61,16 +123,6 @@ x-api-key: sua_API_SECRET_KEY
 }
 ```
 
-Também aceita busca por nome do advogado:
-
-```json
-{
-  "nome": "IGOR GOMIDES BALMANTE",
-  "buscar_djen": true,
-  "limite": 20
-}
-```
-
 ### POST `/api/publico/processos/timeline`
 
 ```json
@@ -86,22 +138,9 @@ Também aceita busca por nome do advogado:
 {
   "tipo": "nome",
   "valor": "SABESP",
-  "filtros": {
-    "tribunal": "TJSP"
-  },
+  "filtros": { "tribunal": "TJSP" },
   "ativo": true
 }
-```
-
-Tipos de alerta:
-
-```txt
-nome
-cpf_cnpj
-advogado
-oab
-cnj
-termo
 ```
 
 ### POST `/api/publico/alertas/executar`
@@ -123,18 +162,7 @@ termo
 }
 ```
 
-Também aceita texto livre:
-
-```json
-{
-  "texto": "procedimento comum cível prática abusiva sabesp",
-  "limite": 10
-}
-```
-
 ### POST `/api/publico/processos/documentos-extraidos`
-
-Extrai CPF/CNPJ presentes no texto indexável do processo.
 
 ```json
 {
@@ -159,11 +187,3 @@ Pega publicações já salvas em `djen_publicacoes`, consulta DataJud e atualiza
 ### POST `/api/publico/processos/buscar-indice`
 
 Busca dentro da base pública já indexada.
-
-### POST `/api/processos/buscar`
-
-Consulta o DataJud pelo número CNJ.
-
-### POST `/api/processos/baixar`
-
-Consulta o DataJud, gera resumo e salva no CRM.
