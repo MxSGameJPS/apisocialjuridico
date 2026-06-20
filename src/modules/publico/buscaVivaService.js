@@ -1,6 +1,7 @@
 import { buscarProcessoPorNumero } from '../processos/processoService.js';
 import { buscarProcessosFullText } from './buscaFullTextService.js';
 import { buscarPorAdvogado, buscarPorCpfCnpj, buscarPorNome } from './buscaEntidadeService.js';
+import { resolverCpfCnpj } from './cpfResolverService.js';
 import { enriquecerBuscaPublicaDjen } from './enriquecimentoPublicoService.js';
 import { extrairEntidadesDeProcesso } from './extratorEntidadesService.js';
 import { somenteDigitos } from './fase6Utils.js';
@@ -65,7 +66,7 @@ function normalizarResultado(item, score = 85) {
   };
 }
 
-function mesclarResultados({ buscaFinal, buscaEspecializada, enriquecimento, diagnosticoCnj }) {
+function mesclarResultados({ buscaFinal, buscaEspecializada, buscasResolvidas = [], enriquecimento, diagnosticoCnj }) {
   const mapa = new Map();
 
   for (const item of buscaFinal?.resultados || []) {
@@ -76,6 +77,13 @@ function mesclarResultados({ buscaFinal, buscaEspecializada, enriquecimento, dia
   for (const item of buscaEspecializada?.resultados || []) {
     const normalizado = normalizarResultado(item, item.score || 90);
     if (normalizado) mapa.set(normalizado.numero_cnj, normalizado);
+  }
+
+  for (const buscaResolvida of buscasResolvidas || []) {
+    for (const item of buscaResolvida?.resultados || []) {
+      const normalizado = normalizarResultado(item, item.score || 92);
+      if (normalizado) mapa.set(normalizado.numero_cnj, normalizado);
+    }
   }
 
   for (const item of enriquecimento?.resultados || []) {
@@ -125,6 +133,23 @@ async function executarBuscaEspecializada({ tipoDetectado, termoBusca, limite })
   }
 }
 
+async function executarBuscaPorCpfResolvido({ tipoDetectado, limite }) {
+  if (tipoDetectado.tipo !== 'cpf_cnpj') return { resolucao: null, buscas: [] };
+
+  const resolucao = await resolverCpfCnpj(tipoDetectado.digitos);
+  if (!resolucao) return { resolucao: null, buscas: [] };
+
+  const nomes = [resolucao.nome_principal, ...(resolucao.nomes_relacionados || [])].filter(Boolean);
+  const buscas = [];
+
+  for (const nome of nomes) {
+    const resultadoNome = await buscarPorNome({ nome, buscarDjen: true, limite });
+    buscas.push({ nome, ...resultadoNome });
+  }
+
+  return { resolucao, buscas };
+}
+
 export async function buscaVivaProcessual({ termo, tribunal = null, pagina = 1, porPagina = 20, enriquecer = true, limiteDjen = 10, dataInicio = null, dataFim = null } = {}) {
   const termoBusca = String(termo || '').trim();
   const tipoDetectado = detectarTipoBusca(termoBusca);
@@ -141,6 +166,8 @@ export async function buscaVivaProcessual({ termo, tribunal = null, pagina = 1, 
     ? await executarBuscaEspecializada({ tipoDetectado, termoBusca, limite: Math.min(Number(limiteDjen || 10), 30) })
     : null;
 
+  const buscaCpfResolvido = await executarBuscaPorCpfResolvido({ tipoDetectado, limite: Math.min(Number(limiteDjen || 10), 30) });
+
   let enriquecimento = null;
   let cnjs = [];
 
@@ -154,7 +181,7 @@ export async function buscaVivaProcessual({ termo, tribunal = null, pagina = 1, 
   }
 
   const buscaFinalOriginal = await buscarProcessosFullText({ termo: termoBusca, tribunal, pagina, porPagina, ordenarPor: 'relevancia' });
-  const buscaFinal = mesclarResultados({ buscaFinal: buscaFinalOriginal, buscaEspecializada, enriquecimento, diagnosticoCnj });
+  const buscaFinal = mesclarResultados({ buscaFinal: buscaFinalOriginal, buscaEspecializada, buscasResolvidas: buscaCpfResolvido.buscas, enriquecimento, diagnosticoCnj });
 
   return {
     origem: diagnosticoCnj?.indexado ? 'busca_viva_datajud' : 'busca_viva_djen_especializada',
@@ -162,7 +189,14 @@ export async function buscaVivaProcessual({ termo, tribunal = null, pagina = 1, 
     busca: buscaFinal,
     enriquecimento: {
       cnj_direto: diagnosticoCnj,
+      cpf_resolvido: buscaCpfResolvido.resolucao ? {
+        documento_mascarado: buscaCpfResolvido.resolucao.documento_mascarado,
+        nome_principal: buscaCpfResolvido.resolucao.nome_principal,
+        nomes_relacionados: buscaCpfResolvido.resolucao.nomes_relacionados,
+        confianca: buscaCpfResolvido.resolucao.confianca,
+      } : null,
       busca_especializada: buscaEspecializada,
+      buscas_por_nome_resolvido: buscaCpfResolvido.buscas,
       resumo: enriquecimento?.resumo || null,
       total_djen: enriquecimento?.busca?.total_retornado || buscaEspecializada?.djen?.total_retornado || 0,
       processos_enriquecidos: cnjs.length + (diagnosticoCnj?.indexado ? 1 : 0),
@@ -173,6 +207,8 @@ export async function buscaVivaProcessual({ termo, tribunal = null, pagina = 1, 
       busca_final_total: buscaFinal.total,
       cnj_detectado: tipoDetectado.tipo === 'cnj',
       cpf_cnpj_detectado: tipoDetectado.tipo === 'cpf_cnpj',
+      cpf_resolvido: Boolean(buscaCpfResolvido.resolucao),
+      cpf_nome_resolvido: buscaCpfResolvido.resolucao?.nome_principal || null,
       oab_detectada: tipoDetectado.tipo === 'oab',
       datajud_direto: diagnosticoCnj,
       busca_especializada_total_indice: buscaEspecializada?.total_indice || 0,
