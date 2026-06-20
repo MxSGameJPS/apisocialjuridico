@@ -1,3 +1,4 @@
+import { comercialRoutes } from './comercial.routes.js';
 import { djenRoutes } from './djen.routes.js';
 import { healthRoutes } from './health.routes.js';
 import { monitoramentoRoutes } from './monitoramento.routes.js';
@@ -18,11 +19,12 @@ export async function registerRoutes(app) {
   await app.register(publicoFase6Routes);
   await app.register(publicoFase789Routes);
   await app.register(publicoFase10Routes);
+  await app.register(comercialRoutes);
 
   app.get('/', async () => ({
     success: true,
     service: 'API Social Jurídico',
-    version: '0.9.0',
-    message: 'API processual com busca full-text, ranking e paginação.',
+    version: '1.0.0',
+    message: 'API processual com camada comercial, API keys, rate limit e logs de uso.',
   }));
 }
