@@ -14,9 +14,70 @@ async function buscarIndicePorTexto({ termo, limite = 20 }) {
   return data || [];
 }
 
+async function buscarIndicePorCnjs(cnjs = [], limite = 20) {
+  const lista = [...new Set(cnjs.filter(Boolean))].slice(0, limite);
+  if (!lista.length) return [];
+
+  const { data, error } = await supabaseAdmin
+    .from('indice_publico_processos')
+    .select('*')
+    .in('numero_cnj', lista)
+    .order('atualizado_em', { ascending: false })
+    .limit(limite);
+
+  if (error) throw new Error(`Erro ao buscar índice por CNJs: ${error.message}`);
+  return data || [];
+}
+
+async function buscarCnjsPorEntidadeDocumento(documento) {
+  const digitos = somenteDigitos(documento);
+  if (!digitos) return [];
+
+  const { data: entidade, error } = await supabaseAdmin
+    .from('entidades_publicas')
+    .select('id')
+    .eq('documento_principal', digitos)
+    .maybeSingle();
+
+  if (error) throw new Error(`Erro ao buscar entidade por documento: ${error.message}`);
+  if (!entidade?.id) return [];
+
+  const { data: relacoes, error: relError } = await supabaseAdmin
+    .from('entidades_processos')
+    .select('numero_cnj')
+    .eq('entidade_id', entidade.id);
+
+  if (relError) throw new Error(`Erro ao buscar vínculos da entidade: ${relError.message}`);
+  return (relacoes || []).map((item) => item.numero_cnj).filter(Boolean);
+}
+
+async function buscarCnjsPorEntidadeNome(nome, limite = 20) {
+  const termo = normalizarTexto(nome);
+  if (!termo) return [];
+
+  const { data: entidades, error } = await supabaseAdmin
+    .from('entidades_publicas')
+    .select('id')
+    .ilike('nome_normalizado', `%${termo}%`)
+    .limit(limite);
+
+  if (error) throw new Error(`Erro ao buscar entidade por nome: ${error.message}`);
+  const ids = (entidades || []).map((item) => item.id).filter(Boolean);
+  if (!ids.length) return [];
+
+  const { data: relacoes, error: relError } = await supabaseAdmin
+    .from('entidades_processos')
+    .select('numero_cnj')
+    .in('entidade_id', ids);
+
+  if (relError) throw new Error(`Erro ao buscar vínculos por nome: ${relError.message}`);
+  return (relacoes || []).map((item) => item.numero_cnj).filter(Boolean);
+}
+
 async function buscarIndicePorCpfCnpj({ documento, limite = 20 }) {
   const digitos = somenteDigitos(documento);
   const formatadoParcial = documento;
+
   const { data, error } = await supabaseAdmin
     .from('indice_publico_processos')
     .select('*')
@@ -25,15 +86,21 @@ async function buscarIndicePorCpfCnpj({ documento, limite = 20 }) {
     .limit(limite);
 
   if (error) throw new Error(`Erro ao buscar CPF/CNPJ no índice: ${error.message}`);
-  return data || [];
+
+  const cnjsEntidade = await buscarCnjsPorEntidadeDocumento(documento);
+  const porEntidade = await buscarIndicePorCnjs(cnjsEntidade, limite);
+
+  return deduplicarProcessos([...(data || []), ...porEntidade]);
 }
 
 async function buscarIndicePorOab({ oab, uf, limite = 20 }) {
   const oabCompleta = montarOab(uf, oab);
+  const oabAlternativa = `${String(uf || '').toUpperCase()} ${somenteDigitos(oab)}`.trim();
+
   const { data, error } = await supabaseAdmin
     .from('indice_publico_processos')
     .select('*')
-    .contains('oabs', [oabCompleta])
+    .or(`oabs.cs.{${oabCompleta}},texto_indexavel.ilike.%${oabCompleta}%,texto_indexavel.ilike.%${oabAlternativa}%`)
     .order('atualizado_em', { ascending: false })
     .limit(limite);
 
@@ -41,8 +108,18 @@ async function buscarIndicePorOab({ oab, uf, limite = 20 }) {
   return data || [];
 }
 
+function deduplicarProcessos(lista = []) {
+  const mapa = new Map();
+  for (const item of lista) {
+    if (!item?.numero_cnj) continue;
+    mapa.set(item.numero_cnj, item);
+  }
+  return [...mapa.values()];
+}
+
 function resumirResultado(item) {
   return {
+    score: item.score || 75,
     numero_cnj: item.numero_cnj,
     numero_cnj_formatado: item.numero_cnj_formatado,
     tribunal: item.tribunal,
@@ -84,7 +161,10 @@ export async function buscarPorCpfCnpj({ documento, buscarDjen = false, limite =
 
 export async function buscarPorNome({ nome, buscarDjen = true, limite = 20 }) {
   const termo = normalizarTexto(nome);
-  const resultadosIndice = await buscarIndicePorTexto({ termo: nome, limite });
+  const resultadosTexto = await buscarIndicePorTexto({ termo: nome, limite });
+  const cnjsEntidade = await buscarCnjsPorEntidadeNome(nome, limite);
+  const resultadosEntidade = await buscarIndicePorCnjs(cnjsEntidade, limite);
+  const resultadosIndice = deduplicarProcessos([...resultadosTexto, ...resultadosEntidade]);
   let resultadoDjen = null;
 
   if (buscarDjen) {
