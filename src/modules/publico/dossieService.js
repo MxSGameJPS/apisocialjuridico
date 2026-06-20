@@ -23,7 +23,7 @@ async function buscarProcessosDaEntidade(entidade) {
   if (error) throw new Error(`Erro ao buscar vínculos da entidade: ${error.message}`);
 
   const cnjs = [...new Set((relacoes || []).map((r) => r.numero_cnj).filter(Boolean))];
-  if (!cnjs.length) return [];
+  if (!cnjs.length) return { processos: [], relacoes: [] };
 
   const { data: processos, error: processosError } = await supabaseAdmin
     .from('indice_publico_processos')
@@ -32,17 +32,25 @@ async function buscarProcessosDaEntidade(entidade) {
     .order('atualizado_em', { ascending: false });
 
   if (processosError) throw new Error(`Erro ao buscar processos do dossiê: ${processosError.message}`);
-  return processos || [];
+  return { processos: processos || [], relacoes: relacoes || [] };
 }
 
-function estatisticas(processos = []) {
+function estatisticas(processos = [], relacoes = []) {
   const tribunais = {};
   const classes = {};
-  const polos = { ativo: 0, passivo: 0, indeterminado: 0 };
+  const polos = { ativo: 0, passivo: 0, advogado: 0, indeterminado: 0 };
 
   for (const p of processos) {
     if (p.tribunal) tribunais[p.tribunal] = (tribunais[p.tribunal] || 0) + 1;
     if (p.classe) classes[p.classe] = (classes[p.classe] || 0) + 1;
+  }
+
+  for (const relacao of relacoes) {
+    const papel = String(relacao.papel || '').toUpperCase();
+    if (papel === 'A') polos.ativo += 1;
+    else if (papel === 'P') polos.passivo += 1;
+    else if (papel === 'ADVOGADO' || papel === 'advogado') polos.advogado += 1;
+    else polos.indeterminado += 1;
   }
 
   return {
@@ -58,12 +66,12 @@ export async function gerarDossiePublico({ id, documento, nome }) {
   const entidade = await buscarEntidade({ id, documento, nome });
   if (!entidade) return { encontrado: false, entidade: null, processos: [], estatisticas: {} };
 
-  const processos = await buscarProcessosDaEntidade(entidade);
+  const { processos, relacoes } = await buscarProcessosDaEntidade(entidade);
 
   return {
     encontrado: true,
     entidade,
-    estatisticas: estatisticas(processos),
+    estatisticas: estatisticas(processos, relacoes),
     processos: processos.map((p) => ({
       numero_cnj: p.numero_cnj,
       numero_cnj_formatado: p.numero_cnj_formatado,
