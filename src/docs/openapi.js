@@ -1,13 +1,14 @@
 const ok = { description: 'Operação executada com sucesso.' };
 const unauthorized = { description: 'Não autorizado.' };
 const badRequest = { description: 'Dados inválidos.' };
+const tooManyRequests = { description: 'Limite excedido.' };
 
-function postEndpoint({ tag, summary, schema, required = true }) {
+function postEndpoint({ tag, summary, schema, required = true, commercial = false }) {
   return {
     post: {
       tags: [tag],
       summary,
-      security: [{ ApiKeyAuth: [] }],
+      security: commercial ? [{ CommercialApiKeyAuth: [] }] : [{ ApiKeyAuth: [] }],
       requestBody: schema
         ? {
             required,
@@ -22,6 +23,7 @@ function postEndpoint({ tag, summary, schema, required = true }) {
         200: ok,
         400: badRequest,
         401: unauthorized,
+        429: tooManyRequests,
       },
     },
   };
@@ -31,8 +33,8 @@ export const openApiDocument = {
   openapi: '3.0.3',
   info: {
     title: 'API Social Jurídico',
-    version: '0.9.0',
-    description: 'API processual com DataJud, DJEN, CRM, busca pública, entidades, dossiês, inteligência jurídica, alertas, similaridades, ranking e paginação.',
+    version: '1.0.0',
+    description: 'API processual com DataJud, DJEN, CRM, busca pública, entidades, dossiês, inteligência jurídica e camada comercial com API keys, rate limit e logs.',
   },
   servers: [
     { url: 'https://n8n.socialjuridico.com.br', description: 'Produção temporária' },
@@ -48,279 +50,51 @@ export const openApiDocument = {
     { name: 'Dossiê', description: 'Dossiês públicos por nome, documento ou entidade.' },
     { name: 'Inteligência Jurídica', description: 'Classificação, risco, recorrência e similaridade.' },
     { name: 'Alertas', description: 'Alertas monitoráveis.' },
+    { name: 'Comercial Admin', description: 'Administração da API comercial.' },
+    { name: 'API Comercial v1', description: 'Endpoints comerciais consumidos com x-commercial-api-key.' },
   ],
   components: {
     securitySchemes: {
       ApiKeyAuth: { type: 'apiKey', in: 'header', name: 'x-api-key' },
+      CommercialApiKeyAuth: { type: 'apiKey', in: 'header', name: 'x-commercial-api-key' },
     },
     schemas: {
-      GenericSuccess: {
-        type: 'object',
-        properties: {
-          success: { type: 'boolean', example: true },
-          message: { type: 'string', example: 'Operação processada.' },
-          data: { type: 'object', additionalProperties: true },
-        },
-      },
-      PessoaCRM: {
-        type: 'object',
-        properties: {
-          nome: { type: 'string', example: 'Maria da Silva' },
-          tipo: { type: 'string', example: 'pessoa_fisica' },
-          documento: { type: 'string', nullable: true, example: '000.000.000-00' },
-          email: { type: 'string', nullable: true },
-          telefone: { type: 'string', nullable: true },
-          observacoes: { type: 'string', nullable: true },
-        },
-      },
-      BuscarProcessoRequest: {
-        type: 'object',
-        required: ['numero_processo'],
-        properties: { numero_processo: { type: 'string', example: '1003394-43.2024.8.26.0394' } },
-      },
-      BaixarProcessoRequest: {
-        type: 'object',
-        required: ['numero_processo', 'advogado_id'],
-        properties: {
-          numero_processo: { type: 'string', example: '10033944320248260394' },
-          advogado_id: { type: 'string', example: 'teste-advogado-001' },
-          usuario_id: { type: 'string', nullable: true, example: 'teste-usuario-001' },
-          cliente: { $ref: '#/components/schemas/PessoaCRM' },
-          parte_contraria: { $ref: '#/components/schemas/PessoaCRM' },
-        },
-      },
-      ImportarLoteRequest: {
-        type: 'object',
-        required: ['advogado_id', 'processos'],
-        properties: {
-          advogado_id: { type: 'string', example: 'teste-advogado-001' },
-          usuario_id: { type: 'string', nullable: true },
-          ignorar_duplicados: { type: 'boolean', example: true },
-          processos: { type: 'array', items: { type: 'string' }, example: ['10033944320248260394'] },
-        },
-      },
-      AtualizarRequest: {
-        type: 'object',
-        required: ['numero_processo', 'advogado_id'],
-        properties: {
-          numero_processo: { type: 'string', example: '10033944320248260394' },
-          advogado_id: { type: 'string', example: 'teste-advogado-001' },
-          usuario_id: { type: 'string', nullable: true },
-        },
-      },
-      AtualizarLoteRequest: {
-        type: 'object',
-        required: ['advogado_id', 'processos'],
-        properties: {
-          advogado_id: { type: 'string', example: 'teste-advogado-001' },
-          usuario_id: { type: 'string', nullable: true },
-          processos: { type: 'array', items: { type: 'string' }, example: ['10033944320248260394'] },
-        },
-      },
-      ExecutarMonitoramentoDataJudRequest: {
-        type: 'object',
-        properties: {
-          advogado_id: { type: 'string', nullable: true },
-          limite: { type: 'integer', example: 25 },
-        },
-      },
-      DjenMonitoramentoRequest: {
-        type: 'object',
-        required: ['advogado_id', 'oab', 'uf'],
-        properties: {
-          advogado_id: { type: 'string', example: 'teste-advogado-001' },
-          usuario_id: { type: 'string', nullable: true },
-          oab: { type: 'string', example: '463170' },
-          uf: { type: 'string', example: 'SP' },
-          ativo: { type: 'boolean', example: true },
-        },
-      },
-      DjenConsultarRequest: {
-        type: 'object',
-        required: ['oab', 'uf'],
-        properties: {
-          advogado_id: { type: 'string', nullable: true },
-          oab: { type: 'string', example: '463170' },
-          uf: { type: 'string', example: 'SP' },
-          data_inicio: { type: 'string', example: '2026-06-01' },
-          data_fim: { type: 'string', example: '2026-06-19' },
-          salvar: { type: 'boolean', example: true },
-        },
-      },
-      DjenProcessarRequest: {
-        type: 'object',
-        required: ['advogado_id', 'oab', 'uf'],
-        properties: {
-          advogado_id: { type: 'string', example: 'teste-advogado-001' },
-          usuario_id: { type: 'string', nullable: true },
-          oab: { type: 'string', example: '463170' },
-          uf: { type: 'string', example: 'SP' },
-          importar_processos: { type: 'boolean', example: false },
-          limite: { type: 'integer', example: 50 },
-        },
-      },
-      DjenMonitorarRequest: {
-        type: 'object',
-        properties: { limite_por_oab: { type: 'integer', example: 50 } },
-      },
-      FiltrosPublicos: {
-        type: 'object',
-        properties: {
-          oab: { type: 'string', example: '463170' },
-          uf: { type: 'string', example: 'SP' },
-          numero_processo: { type: 'string', example: '1503393-51.2025.8.26.0269' },
-          numero_cnj: { type: 'string', example: '15033935120258260269' },
-          tribunal: { type: 'string', example: 'TJSP' },
-          nome_parte: { type: 'string', example: 'SABESP' },
-          nome_advogado: { type: 'string', example: 'IGOR GOMIDES' },
-          nome_orgao: { type: 'string', example: '1ª Vara Criminal - Itapetininga' },
-          tipo_comunicacao: { type: 'string', example: 'Intimação' },
-          tipo_documento: { type: 'string', example: 'Edital' },
-          data_inicio: { type: 'string', example: '2026-06-01' },
-          data_fim: { type: 'string', example: '2026-06-19' },
-          pagina: { type: 'integer', example: 1 },
-          itens_por_pagina: { type: 'integer', example: 20 },
-          parametros_extras: { type: 'object', additionalProperties: true },
-        },
-      },
-      BuscaPublicaDjenRequest: {
-        type: 'object',
-        properties: {
-          advogado_id: { type: 'string', nullable: true, example: 'publico' },
-          salvar: { type: 'boolean', example: true },
-          filtros: { $ref: '#/components/schemas/FiltrosPublicos' },
-        },
-      },
-      EnriquecerBuscaRequest: {
-        type: 'object',
-        required: ['filtros'],
-        properties: {
-          salvar_busca: { type: 'boolean', example: true },
-          usar_datajud: { type: 'boolean', example: true },
-          limite: { type: 'integer', example: 5 },
-          filtros: { $ref: '#/components/schemas/FiltrosPublicos' },
-        },
-      },
-      EnriquecerPendentesRequest: {
-        type: 'object',
-        properties: {
-          usar_datajud: { type: 'boolean', example: true },
-          limite: { type: 'integer', example: 10 },
-        },
-      },
-      BuscarIndiceRequest: {
-        type: 'object',
-        properties: {
-          termo: { type: 'string', example: 'SABESP' },
-          numero_cnj: { type: 'string', example: '40004565820268260069' },
-          tribunal: { type: 'string', example: 'TJSP' },
-          limite: { type: 'integer', example: 20 },
-        },
-      },
-      BuscarCpfCnpjRequest: {
-        type: 'object',
-        required: ['documento'],
-        properties: {
-          documento: { type: 'string', example: '537.012.468-07' },
-          buscar_djen: { type: 'boolean', example: false },
-          limite: { type: 'integer', example: 20 },
-        },
-      },
-      BuscarNomeRequest: {
-        type: 'object',
-        required: ['nome'],
-        properties: {
-          nome: { type: 'string', example: 'SABESP' },
-          buscar_djen: { type: 'boolean', example: true },
-          limite: { type: 'integer', example: 20 },
-        },
-      },
-      BuscarAdvogadoRequest: {
-        type: 'object',
-        properties: {
-          nome: { type: 'string', nullable: true, example: 'IGOR GOMIDES BALMANTE' },
-          oab: { type: 'string', nullable: true, example: '463170' },
-          uf: { type: 'string', nullable: true, example: 'SP' },
-          buscar_djen: { type: 'boolean', example: true },
-          limite: { type: 'integer', example: 20 },
-        },
-      },
-      TimelineRequest: {
-        type: 'object',
-        required: ['numero_cnj'],
-        properties: {
-          numero_cnj: { type: 'string', example: '15033935120258260269' },
-          atualizar_datajud: { type: 'boolean', example: false },
-        },
-      },
-      CriarAlertaRequest: {
-        type: 'object',
-        required: ['tipo', 'valor'],
-        properties: {
-          tipo: { type: 'string', enum: ['nome', 'cpf_cnpj', 'advogado', 'oab', 'cnj', 'termo'], example: 'nome' },
-          valor: { type: 'string', example: 'SABESP' },
-          usuario_id: { type: 'string', nullable: true },
-          advogado_id: { type: 'string', nullable: true },
-          filtros: { type: 'object', additionalProperties: true, example: { tribunal: 'TJSP' } },
-          ativo: { type: 'boolean', example: true },
-        },
-      },
-      ExecutarAlertasRequest: {
-        type: 'object',
-        properties: {
-          limite_alertas: { type: 'integer', example: 25 },
-          limite_por_alerta: { type: 'integer', example: 10 },
-        },
-      },
-      SimilaresRequest: {
-        type: 'object',
-        properties: {
-          numero_cnj: { type: 'string', nullable: true, example: '15033935120258260269' },
-          texto: { type: 'string', nullable: true, example: 'procedimento comum cível sabesp' },
-          limite: { type: 'integer', example: 10 },
-          score_minimo: { type: 'number', example: 0.12 },
-        },
-      },
-      CnjRequest: {
-        type: 'object',
-        required: ['numero_cnj'],
-        properties: { numero_cnj: { type: 'string', example: '15033935120258260269' } },
-      },
-      ListarEntidadesRequest: {
-        type: 'object',
-        properties: {
-          termo: { type: 'string', nullable: true, example: 'augusto' },
-          tipo: { type: 'string', nullable: true, example: 'pessoa_fisica' },
-          limite: { type: 'integer', example: 20 },
-        },
-      },
-      DossieRequest: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', nullable: true },
-          documento: { type: 'string', nullable: true, example: '537.012.468-07' },
-          nome: { type: 'string', nullable: true, example: 'AUGUSTO SANTANA CRUZ CAMPOS' },
-        },
-      },
-      RecorrenciaRequest: {
-        type: 'object',
-        properties: {
-          termo: { type: 'string', nullable: true, example: 'SABESP' },
-          tribunal: { type: 'string', nullable: true, example: 'TJSP' },
-          classe: { type: 'string', nullable: true, example: 'PROCEDIMENTO COMUM CÍVEL' },
-        },
-      },
-      FullTextRequest: {
-        type: 'object',
-        properties: {
-          termo: { type: 'string', nullable: true, example: 'SABESP' },
-          tribunal: { type: 'string', nullable: true, example: 'TJSP' },
-          classe: { type: 'string', nullable: true },
-          pagina: { type: 'integer', example: 1 },
-          por_pagina: { type: 'integer', example: 20 },
-          ordenar_por: { type: 'string', enum: ['relevancia', 'data'], example: 'relevancia' },
-        },
-      },
+      GenericSuccess: { type: 'object', properties: { success: { type: 'boolean' }, message: { type: 'string' }, data: { type: 'object', additionalProperties: true } } },
+      PessoaCRM: { type: 'object', properties: { nome: { type: 'string', example: 'Maria da Silva' }, tipo: { type: 'string', example: 'pessoa_fisica' }, documento: { type: 'string', nullable: true }, email: { type: 'string', nullable: true }, telefone: { type: 'string', nullable: true }, observacoes: { type: 'string', nullable: true } } },
+      BuscarProcessoRequest: { type: 'object', required: ['numero_processo'], properties: { numero_processo: { type: 'string', example: '1003394-43.2024.8.26.0394' } } },
+      BaixarProcessoRequest: { type: 'object', required: ['numero_processo', 'advogado_id'], properties: { numero_processo: { type: 'string', example: '10033944320248260394' }, advogado_id: { type: 'string', example: 'teste-advogado-001' }, usuario_id: { type: 'string', nullable: true }, cliente: { $ref: '#/components/schemas/PessoaCRM' }, parte_contraria: { $ref: '#/components/schemas/PessoaCRM' } } },
+      ImportarLoteRequest: { type: 'object', required: ['advogado_id', 'processos'], properties: { advogado_id: { type: 'string' }, usuario_id: { type: 'string', nullable: true }, ignorar_duplicados: { type: 'boolean', example: true }, processos: { type: 'array', items: { type: 'string' }, example: ['10033944320248260394'] } } },
+      AtualizarRequest: { type: 'object', required: ['numero_processo', 'advogado_id'], properties: { numero_processo: { type: 'string' }, advogado_id: { type: 'string' }, usuario_id: { type: 'string', nullable: true } } },
+      AtualizarLoteRequest: { type: 'object', required: ['advogado_id', 'processos'], properties: { advogado_id: { type: 'string' }, usuario_id: { type: 'string', nullable: true }, processos: { type: 'array', items: { type: 'string' } } } },
+      ExecutarMonitoramentoDataJudRequest: { type: 'object', properties: { advogado_id: { type: 'string', nullable: true }, limite: { type: 'integer', example: 25 } } },
+
+      DjenMonitoramentoRequest: { type: 'object', required: ['advogado_id', 'oab', 'uf'], properties: { advogado_id: { type: 'string' }, usuario_id: { type: 'string', nullable: true }, oab: { type: 'string', example: '463170' }, uf: { type: 'string', example: 'SP' }, ativo: { type: 'boolean', example: true } } },
+      DjenConsultarRequest: { type: 'object', required: ['oab', 'uf'], properties: { advogado_id: { type: 'string', nullable: true }, oab: { type: 'string', example: '463170' }, uf: { type: 'string', example: 'SP' }, data_inicio: { type: 'string', example: '2026-06-01' }, data_fim: { type: 'string', example: '2026-06-19' }, salvar: { type: 'boolean', example: true } } },
+      DjenProcessarRequest: { type: 'object', required: ['advogado_id', 'oab', 'uf'], properties: { advogado_id: { type: 'string' }, usuario_id: { type: 'string', nullable: true }, oab: { type: 'string' }, uf: { type: 'string' }, importar_processos: { type: 'boolean', example: false }, limite: { type: 'integer', example: 50 } } },
+      DjenMonitorarRequest: { type: 'object', properties: { limite_por_oab: { type: 'integer', example: 50 } } },
+
+      FiltrosPublicos: { type: 'object', properties: { oab: { type: 'string', example: '463170' }, uf: { type: 'string', example: 'SP' }, numero_processo: { type: 'string', example: '1503393-51.2025.8.26.0269' }, numero_cnj: { type: 'string', example: '15033935120258260269' }, tribunal: { type: 'string', example: 'TJSP' }, nome_parte: { type: 'string', example: 'SABESP' }, nome_advogado: { type: 'string', example: 'IGOR GOMIDES' }, nome_orgao: { type: 'string' }, tipo_comunicacao: { type: 'string' }, tipo_documento: { type: 'string' }, data_inicio: { type: 'string' }, data_fim: { type: 'string' }, pagina: { type: 'integer', example: 1 }, itens_por_pagina: { type: 'integer', example: 20 }, parametros_extras: { type: 'object', additionalProperties: true } } },
+      BuscaPublicaDjenRequest: { type: 'object', properties: { advogado_id: { type: 'string', nullable: true, example: 'publico' }, salvar: { type: 'boolean', example: true }, filtros: { $ref: '#/components/schemas/FiltrosPublicos' } } },
+      EnriquecerBuscaRequest: { type: 'object', required: ['filtros'], properties: { salvar_busca: { type: 'boolean', example: true }, usar_datajud: { type: 'boolean', example: true }, limite: { type: 'integer', example: 5 }, filtros: { $ref: '#/components/schemas/FiltrosPublicos' } } },
+      EnriquecerPendentesRequest: { type: 'object', properties: { usar_datajud: { type: 'boolean', example: true }, limite: { type: 'integer', example: 10 } } },
+      BuscarIndiceRequest: { type: 'object', properties: { termo: { type: 'string', example: 'SABESP' }, numero_cnj: { type: 'string' }, tribunal: { type: 'string' }, limite: { type: 'integer', example: 20 } } },
+      FullTextRequest: { type: 'object', properties: { termo: { type: 'string', nullable: true, example: 'SABESP' }, tribunal: { type: 'string', nullable: true, example: 'TJSP' }, classe: { type: 'string', nullable: true }, pagina: { type: 'integer', example: 1 }, por_pagina: { type: 'integer', example: 20 }, ordenar_por: { type: 'string', enum: ['relevancia', 'data'], example: 'relevancia' } } },
+      BuscarCpfCnpjRequest: { type: 'object', required: ['documento'], properties: { documento: { type: 'string', example: '537.012.468-07' }, buscar_djen: { type: 'boolean', example: false }, limite: { type: 'integer', example: 20 } } },
+      BuscarNomeRequest: { type: 'object', required: ['nome'], properties: { nome: { type: 'string', example: 'SABESP' }, buscar_djen: { type: 'boolean', example: true }, limite: { type: 'integer', example: 20 } } },
+      BuscarAdvogadoRequest: { type: 'object', properties: { nome: { type: 'string', nullable: true }, oab: { type: 'string', nullable: true, example: '463170' }, uf: { type: 'string', nullable: true, example: 'SP' }, buscar_djen: { type: 'boolean', example: true }, limite: { type: 'integer', example: 20 } } },
+      TimelineRequest: { type: 'object', required: ['numero_cnj'], properties: { numero_cnj: { type: 'string', example: '15033935120258260269' }, atualizar_datajud: { type: 'boolean', example: false } } },
+      CnjRequest: { type: 'object', required: ['numero_cnj'], properties: { numero_cnj: { type: 'string', example: '15033935120258260269' } } },
+      CriarAlertaRequest: { type: 'object', required: ['tipo', 'valor'], properties: { tipo: { type: 'string', enum: ['nome', 'cpf_cnpj', 'advogado', 'oab', 'cnj', 'termo'], example: 'nome' }, valor: { type: 'string', example: 'SABESP' }, usuario_id: { type: 'string', nullable: true }, advogado_id: { type: 'string', nullable: true }, filtros: { type: 'object', additionalProperties: true, example: { tribunal: 'TJSP' } }, ativo: { type: 'boolean', example: true } } },
+      ExecutarAlertasRequest: { type: 'object', properties: { limite_alertas: { type: 'integer', example: 25 }, limite_por_alerta: { type: 'integer', example: 10 } } },
+      SimilaresRequest: { type: 'object', properties: { numero_cnj: { type: 'string', nullable: true }, texto: { type: 'string', nullable: true }, limite: { type: 'integer', example: 10 }, score_minimo: { type: 'number', example: 0.12 } } },
+      ListarEntidadesRequest: { type: 'object', properties: { termo: { type: 'string', nullable: true, example: 'augusto' }, tipo: { type: 'string', nullable: true, example: 'pessoa_fisica' }, limite: { type: 'integer', example: 20 } } },
+      DossieRequest: { type: 'object', properties: { id: { type: 'string', nullable: true }, documento: { type: 'string', nullable: true, example: '537.012.468-07' }, nome: { type: 'string', nullable: true, example: 'AUGUSTO SANTANA CRUZ CAMPOS' } } },
+      RecorrenciaRequest: { type: 'object', properties: { termo: { type: 'string', nullable: true, example: 'SABESP' }, tribunal: { type: 'string', nullable: true, example: 'TJSP' }, classe: { type: 'string', nullable: true } } },
+
+      CriarClienteComercialRequest: { type: 'object', required: ['nome', 'email'], properties: { nome: { type: 'string', example: 'Cliente API Teste' }, email: { type: 'string', example: 'cliente@empresa.com.br' }, documento: { type: 'string', nullable: true }, plano: { type: 'string', enum: ['free', 'start', 'pro', 'enterprise'], example: 'start' }, ativo: { type: 'boolean', example: true } } },
+      CriarApiKeyComercialRequest: { type: 'object', required: ['cliente_id'], properties: { cliente_id: { type: 'string', format: 'uuid' }, nome: { type: 'string', example: 'Chave produção' }, plano: { type: 'string', enum: ['free', 'start', 'pro', 'enterprise'], nullable: true } } },
+      AlterarStatusApiKeyRequest: { type: 'object', required: ['api_key_id', 'ativo'], properties: { api_key_id: { type: 'string', format: 'uuid' }, ativo: { type: 'boolean', example: false } } },
+      UsoComercialRequest: { type: 'object', properties: { cliente_id: { type: 'string', format: 'uuid', nullable: true }, api_key_id: { type: 'string', format: 'uuid', nullable: true }, limite: { type: 'integer', example: 100 } } },
     },
   },
   paths: {
@@ -332,7 +106,6 @@ export const openApiDocument = {
     '/api/processos/importar-lote': postEndpoint({ tag: 'Processos', summary: 'Importar processos em lote', schema: 'ImportarLoteRequest' }),
     '/api/processos/atualizar': postEndpoint({ tag: 'Processos', summary: 'Atualizar processo manualmente', schema: 'AtualizarRequest' }),
     '/api/processos/atualizar-lote': postEndpoint({ tag: 'Processos', summary: 'Atualizar processos em lote', schema: 'AtualizarLoteRequest' }),
-
     '/api/monitoramento/datajud/executar': postEndpoint({ tag: 'Monitoramento', summary: 'Executar monitoramento DataJud', schema: 'ExecutarMonitoramentoDataJudRequest', required: false }),
 
     '/api/djen/monitoramentos': postEndpoint({ tag: 'DJEN', summary: 'Cadastrar OAB para monitoramento DJEN', schema: 'DjenMonitoramentoRequest' }),
@@ -345,21 +118,28 @@ export const openApiDocument = {
     '/api/publico/processos/enriquecer-pendentes': postEndpoint({ tag: 'Busca Pública', summary: 'Enriquecer publicações DJEN já salvas', schema: 'EnriquecerPendentesRequest', required: false }),
     '/api/publico/processos/buscar-indice': postEndpoint({ tag: 'Busca Pública', summary: 'Buscar no índice público processual', schema: 'BuscarIndiceRequest', required: false }),
     '/api/publico/busca/full-text': postEndpoint({ tag: 'Busca Pública', summary: 'Busca full-text com ranking e paginação', schema: 'FullTextRequest', required: false }),
-
     '/api/publico/buscar/cpf-cnpj': postEndpoint({ tag: 'Busca Pública', summary: 'Buscar por CPF/CNPJ', schema: 'BuscarCpfCnpjRequest' }),
     '/api/publico/buscar/nome': postEndpoint({ tag: 'Busca Pública', summary: 'Buscar por nome de pessoa, parte ou empresa', schema: 'BuscarNomeRequest' }),
     '/api/publico/buscar/advogado': postEndpoint({ tag: 'Busca Pública', summary: 'Buscar por advogado, nome ou OAB', schema: 'BuscarAdvogadoRequest' }),
     '/api/publico/processos/timeline': postEndpoint({ tag: 'Busca Pública', summary: 'Gerar timeline processual', schema: 'TimelineRequest' }),
     '/api/publico/processos/documentos-extraidos': postEndpoint({ tag: 'Entidades', summary: 'Extrair documentos do texto indexado', schema: 'CnjRequest' }),
-
     '/api/publico/alertas': postEndpoint({ tag: 'Alertas', summary: 'Criar alerta público monitorável', schema: 'CriarAlertaRequest' }),
     '/api/publico/alertas/executar': postEndpoint({ tag: 'Alertas', summary: 'Executar alertas públicos', schema: 'ExecutarAlertasRequest', required: false }),
-
     '/api/publico/processos/similares': postEndpoint({ tag: 'Inteligência Jurídica', summary: 'Encontrar processos similares', schema: 'SimilaresRequest', required: false }),
     '/api/publico/entidades/extrair': postEndpoint({ tag: 'Entidades', summary: 'Extrair entidades públicas de um processo', schema: 'CnjRequest' }),
     '/api/publico/entidades/listar': postEndpoint({ tag: 'Entidades', summary: 'Listar entidades públicas', schema: 'ListarEntidadesRequest', required: false }),
     '/api/publico/dossie': postEndpoint({ tag: 'Dossiê', summary: 'Gerar dossiê público por documento, nome ou entidade', schema: 'DossieRequest', required: false }),
     '/api/publico/inteligencia/analisar-processo': postEndpoint({ tag: 'Inteligência Jurídica', summary: 'Analisar processo com heurísticas jurídicas', schema: 'CnjRequest' }),
     '/api/publico/inteligencia/recorrencia': postEndpoint({ tag: 'Inteligência Jurídica', summary: 'Gerar estatísticas de recorrência', schema: 'RecorrenciaRequest', required: false }),
+
+    '/api/comercial/planos': { get: { tags: ['Comercial Admin'], summary: 'Listar planos comerciais', security: [{ ApiKeyAuth: [] }], responses: { 200: ok, 401: unauthorized } } },
+    '/api/comercial/clientes': postEndpoint({ tag: 'Comercial Admin', summary: 'Criar cliente comercial', schema: 'CriarClienteComercialRequest' }),
+    '/api/comercial/api-keys': postEndpoint({ tag: 'Comercial Admin', summary: 'Criar API key comercial', schema: 'CriarApiKeyComercialRequest' }),
+    '/api/comercial/api-keys/status': postEndpoint({ tag: 'Comercial Admin', summary: 'Ativar ou bloquear API key comercial', schema: 'AlterarStatusApiKeyRequest' }),
+    '/api/comercial/uso': postEndpoint({ tag: 'Comercial Admin', summary: 'Listar logs de uso comercial', schema: 'UsoComercialRequest', required: false }),
+
+    '/api/v1/busca/processos': postEndpoint({ tag: 'API Comercial v1', summary: 'Busca comercial de processos', schema: 'FullTextRequest', commercial: true, required: false }),
+    '/api/v1/dossie': postEndpoint({ tag: 'API Comercial v1', summary: 'Dossiê comercial', schema: 'DossieRequest', commercial: true, required: false }),
+    '/api/v1/processos/timeline': postEndpoint({ tag: 'API Comercial v1', summary: 'Timeline comercial de processo', schema: 'TimelineRequest', commercial: true }),
   },
 };
