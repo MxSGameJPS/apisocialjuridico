@@ -1,159 +1,30 @@
-function layout({ title = 'Busca Processual', body = '', extraScript = '' }) {
-  return `<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${title} | Social Jurídico</title>
-  <style>
-    :root { --bg:#171513; --bg2:#242424; --panel:#1d1c1a; --panel2:#25231f; --muted:#b8b8b8; --text:#ffffff; --gold:#e2bd31; --gold2:#c99b17; --line:rgba(226,189,49,.23); --shadow:rgba(226,189,49,.16); }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:radial-gradient(circle at 50% 0%,rgba(226,189,49,.16),transparent 34%),linear-gradient(180deg,#191714 0%,#151515 56%,#252525 100%); color:var(--text); }
-    body:before { content:''; position:fixed; inset:0; pointer-events:none; background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px); background-size:38px 38px; mask-image:linear-gradient(to bottom,black,transparent 70%); }
-    a { color:inherit; }
-    .wrap { max-width:1180px; margin:0 auto; padding:0 18px 60px; }
-    .navShell { position:sticky; top:0; z-index:10; background:rgba(34,34,34,.94); border-bottom:1px solid rgba(255,255,255,.08); box-shadow:0 1px 0 rgba(226,189,49,.25) inset; backdrop-filter:blur(14px); }
-    .nav { max-width:1180px; margin:0 auto; min-height:70px; display:flex; align-items:center; justify-content:space-between; gap:18px; padding:0 18px; }
-    .logo { display:flex; align-items:center; gap:12px; font-weight:900; letter-spacing:-.035em; font-size:22px; }
-    .mark { width:38px; height:38px; border-radius:11px; background:linear-gradient(135deg,var(--gold),var(--gold2)); color:#161616; display:grid; place-items:center; box-shadow:0 12px 34px rgba(226,189,49,.28); font-weight:900; }
-    .nav a { text-decoration:none; color:#ededed; font-size:14px; font-weight:800; margin-left:22px; opacity:.92; }
-    .nav a:hover { color:var(--gold); }
-    .nav .navCta { background:linear-gradient(135deg,var(--gold),var(--gold2)); color:#171717; padding:12px 24px; border-radius:999px; box-shadow:0 16px 40px rgba(226,189,49,.22); }
-    .hero { text-align:center; padding:82px 0 48px; }
-    .kicker { color:var(--gold); font-weight:900; font-size:13px; letter-spacing:.14em; text-transform:uppercase; margin-bottom:18px; }
-    h1 { font-size:clamp(38px,6vw,72px); line-height:1.03; margin:0 0 22px; letter-spacing:-.07em; font-weight:950; }
-    h1 .gold { color:var(--gold); }
-    .lead { color:#e4e4e4; max-width:790px; margin:0 auto 30px; font-size:19px; line-height:1.6; }
-    .searchBox { background:rgba(17,17,17,.62); border:1px solid var(--line); border-radius:999px; padding:10px; display:flex; gap:10px; max-width:850px; margin:0 auto; box-shadow:0 28px 80px rgba(0,0,0,.36),0 0 60px var(--shadow); }
-    input, select { width:100%; background:#111; color:var(--text); border:1px solid rgba(255,255,255,.12); border-radius:999px; padding:17px 20px; font-size:16px; outline:none; }
-    input:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(226,189,49,.12); }
-    button,.btn { background:linear-gradient(135deg,var(--gold),var(--gold2)); color:#171717; border:0; border-radius:999px; padding:16px 25px; font-weight:900; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; white-space:nowrap; box-shadow:0 16px 35px rgba(226,189,49,.22); }
-    .secondary { background:transparent; color:#fff; border:1px solid rgba(255,255,255,.22); box-shadow:none; }
-    .stats { max-width:860px; margin:34px auto 0; background:rgba(16,16,16,.6); border:1px solid var(--line); border-radius:18px; display:grid; grid-template-columns:repeat(4,1fr); overflow:hidden; }
-    .stat { padding:18px; border-right:1px solid rgba(226,189,49,.16); text-align:left; }
-    .stat:last-child { border-right:0; }
-    .stat b { color:var(--gold); font-size:24px; display:block; line-height:1; }
-    .stat span { color:#aaa; font-size:11px; font-weight:900; text-transform:uppercase; }
-    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:36px; }
-    .card { background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025)); border:1px solid var(--line); border-radius:20px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.22); }
-    .card h3 { margin:0 0 8px; font-size:18px; }
-    .muted { color:var(--muted); }
-    .results { margin-top:28px; display:grid; gap:16px; }
-    .result { background:linear-gradient(180deg,#1e1e1e,#171717); border:1px solid var(--line); border-radius:22px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.22); }
-    .result h2 { font-size:22px; margin:0 0 10px; letter-spacing:-.03em; }
-    .pill { display:inline-flex; border:1px solid var(--line); color:#f1d36b; padding:6px 11px; border-radius:999px; font-size:12px; font-weight:800; margin:4px 6px 4px 0; background:rgba(226,189,49,.07); }
-    .meta { color:var(--muted); font-size:14px; line-height:1.7; }
-    .actions { margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; }
-    .sectionTitle { margin:34px 0 14px; font-size:30px; letter-spacing:-.04em; }
-    .timeline { border-left:2px solid var(--line); padding-left:20px; display:grid; gap:14px; }
-    .event { position:relative; background:#1d1d1d; border:1px solid var(--line); border-radius:18px; padding:18px; }
-    .event:before { content:''; position:absolute; left:-28px; top:20px; width:12px; height:12px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 6px rgba(226,189,49,.12); }
-    .footer { margin-top:54px; color:#9f9f9f; font-size:13px; text-align:center; }
-    @media (max-width:850px){ .searchBox{border-radius:24px;flex-direction:column}.grid,.stats{grid-template-columns:1fr}.stat{border-right:0;border-bottom:1px solid rgba(226,189,49,.16)}.navLinks{display:none}.hero{padding-top:54px} }
-  </style>
-</head>
-<body>
-  <div class="navShell"><nav class="nav">
-    <div class="logo"><span class="mark">⚖</span><span>Social Jurídico</span></div>
-    <div class="navLinks"><a href="/app">Busca Pública</a><a href="/docs">API Docs</a><a href="/app/comercial">API Comercial</a><a class="navCta" href="https://www.socialjuridico.com.br" target="_blank">Social Jurídico</a></div>
-  </nav></div>
-  <main class="wrap">
-    ${body}
-    <div class="footer">Social Jurídico API · dados processuais públicos, busca, dossiês e inteligência jurídica.</div>
-  </main>
-  ${extraScript}
-</body>
-</html>`;
+function layout({ title = 'Busca Processual', body = '' }) {
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>${title} | Social Jurídico</title><style>
+:root{--bg:#171513;--muted:#b8b8b8;--text:#fff;--gold:#e2bd31;--gold2:#c99b17;--line:rgba(226,189,49,.23);--shadow:rgba(226,189,49,.16)}*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:radial-gradient(circle at 50% 0%,rgba(226,189,49,.16),transparent 34%),linear-gradient(180deg,#191714 0%,#151515 56%,#252525 100%);color:var(--text)}body:before{content:'';position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:38px 38px;mask-image:linear-gradient(to bottom,black,transparent 70%)}a{color:inherit}.wrap{max-width:1180px;margin:0 auto;padding:0 18px 60px}.navShell{position:sticky;top:0;z-index:10;background:rgba(34,34,34,.94);border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 1px 0 rgba(226,189,49,.25) inset;backdrop-filter:blur(14px)}.nav{max-width:1180px;margin:0 auto;min-height:70px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:0 18px}.logo{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:-.035em;font-size:22px}.mark{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#161616;display:grid;place-items:center;box-shadow:0 12px 34px rgba(226,189,49,.28);font-weight:900}.nav a{text-decoration:none;color:#ededed;font-size:14px;font-weight:800;margin-left:22px;opacity:.92}.nav a:hover{color:var(--gold)}.nav .navCta{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#171717;padding:12px 24px;border-radius:999px;box-shadow:0 16px 40px rgba(226,189,49,.22)}.hero{text-align:center;padding:82px 0 48px}.kicker{color:var(--gold);font-weight:900;font-size:13px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px}h1{font-size:clamp(38px,6vw,72px);line-height:1.03;margin:0 0 22px;letter-spacing:-.07em;font-weight:950}h1 .gold{color:var(--gold)}.lead{color:#e4e4e4;max-width:790px;margin:0 auto 30px;font-size:19px;line-height:1.6}.searchBox{background:rgba(17,17,17,.62);border:1px solid var(--line);border-radius:999px;padding:10px;display:flex;gap:10px;max-width:850px;margin:0 auto;box-shadow:0 28px 80px rgba(0,0,0,.36),0 0 60px var(--shadow)}input{width:100%;background:#111;color:var(--text);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:17px 20px;font-size:16px;outline:none}input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(226,189,49,.12)}button,.btn{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#171717;border:0;border-radius:999px;padding:16px 25px;font-weight:900;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;box-shadow:0 16px 35px rgba(226,189,49,.22)}.secondary{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.22);box-shadow:none}.stats{max-width:860px;margin:34px auto 0;background:rgba(16,16,16,.6);border:1px solid var(--line);border-radius:18px;display:grid;grid-template-columns:repeat(4,1fr);overflow:hidden}.stat{padding:18px;border-right:1px solid rgba(226,189,49,.16);text-align:left}.stat:last-child{border-right:0}.stat b{color:var(--gold);font-size:24px;display:block;line-height:1}.stat span{color:#aaa;font-size:11px;font-weight:900;text-transform:uppercase}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:36px}.card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025));border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.22)}.card h3{margin:0 0 8px;font-size:18px}.muted{color:var(--muted)}.results{margin-top:28px;display:grid;gap:16px}.result{background:linear-gradient(180deg,#1e1e1e,#171717);border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.22)}.result h2{font-size:22px;margin:0 0 10px;letter-spacing:-.03em}.pill{display:inline-flex;border:1px solid var(--line);color:#f1d36b;padding:6px 11px;border-radius:999px;font-size:12px;font-weight:800;margin:4px 6px 4px 0;background:rgba(226,189,49,.07)}.meta{color:var(--muted);font-size:14px;line-height:1.7}.actions{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap}.sectionTitle{margin:34px 0 14px;font-size:30px;letter-spacing:-.04em}.timeline{border-left:2px solid var(--line);padding-left:20px;display:grid;gap:14px}.event{position:relative;background:#1d1d1d;border:1px solid var(--line);border-radius:18px;padding:18px}.event:before{content:'';position:absolute;left:-28px;top:20px;width:12px;height:12px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 6px rgba(226,189,49,.12)}.liveBox{max-width:850px;margin:18px auto 0;background:rgba(226,189,49,.08);border:1px solid var(--line);border-radius:18px;padding:14px 18px;color:#f6dfa0;font-weight:800}.footer{margin-top:54px;color:#9f9f9f;font-size:13px;text-align:center}@media(max-width:850px){.searchBox{border-radius:24px;flex-direction:column}.grid,.stats{grid-template-columns:1fr}.stat{border-right:0;border-bottom:1px solid rgba(226,189,49,.16)}.navLinks{display:none}.hero{padding-top:54px}}
+</style></head><body><div class="navShell"><nav class="nav"><div class="logo"><span class="mark">⚖</span><span>Social Jurídico</span></div><div class="navLinks"><a href="/app">Busca Pública</a><a href="/docs">API Docs</a><a href="/app/comercial">API Comercial</a><a class="navCta" href="https://www.socialjuridico.com.br" target="_blank">Social Jurídico</a></div></nav></div><main class="wrap">${body}<div class="footer">Social Jurídico API · dados processuais públicos, busca, dossiês e inteligência jurídica.</div></main></body></html>`;
 }
 
-function escapeHtml(value = '') {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
+function escapeHtml(value = '') { return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
 
 function resultCard(item) {
-  return `<article class="result">
-    <h2>${escapeHtml(item.numero_cnj_formatado || item.numero_cnj || 'Processo')}</h2>
-    <div><span class="pill">${escapeHtml(item.tribunal || 'Tribunal')}</span><span class="pill">${escapeHtml(item.classe || 'Classe não informada')}</span><span class="pill">Score ${item.score ?? '-'}</span></div>
-    <p class="meta"><b>Órgão:</b> ${escapeHtml(item.orgao || '-')}<br/><b>Parte ativa:</b> ${escapeHtml(item.parte_ativa || '-')}<br/><b>Parte passiva:</b> ${escapeHtml(item.parte_passiva || '-')}<br/><b>Última publicação:</b> ${escapeHtml(item.ultima_publicacao_em || '-')}</p>
-    ${item.resumo_ia ? `<p class="meta">${escapeHtml(item.resumo_ia).slice(0, 420)}...</p>` : ''}
-    <div class="actions"><a class="btn" href="/app/processo/${item.numero_cnj}">Ver processo</a><a class="btn secondary" href="/app/busca?q=${encodeURIComponent(item.parte_passiva || item.parte_ativa || item.numero_cnj)}">Buscar relacionados</a></div>
-  </article>`;
+  return `<article class="result"><h2>${escapeHtml(item.numero_cnj_formatado || item.numero_cnj || 'Processo')}</h2><div><span class="pill">${escapeHtml(item.tribunal || 'Tribunal')}</span><span class="pill">${escapeHtml(item.classe || 'Classe não informada')}</span><span class="pill">Score ${item.score ?? '-'}</span></div><p class="meta"><b>Órgão:</b> ${escapeHtml(item.orgao || '-')}<br/><b>Parte ativa:</b> ${escapeHtml(item.parte_ativa || '-')}<br/><b>Parte passiva:</b> ${escapeHtml(item.parte_passiva || '-')}<br/><b>Última publicação:</b> ${escapeHtml(item.ultima_publicacao_em || '-')}</p>${item.resumo_ia ? `<p class="meta">${escapeHtml(item.resumo_ia).slice(0, 420)}...</p>` : ''}<div class="actions"><a class="btn" href="/app/processo/${item.numero_cnj}">Ver processo</a><a class="btn secondary" href="/app/busca?q=${encodeURIComponent(item.parte_passiva || item.parte_ativa || item.numero_cnj)}">Buscar relacionados</a></div></article>`;
 }
 
 export function homePage() {
-  return layout({
-    title: 'Busca Processual',
-    body: `<section class="hero">
-      <div class="kicker">Busca pública processual</div>
-      <h1>Encontre processos, partes e advogados <span class="gold">em segundos.</span></h1>
-      <p class="lead">Uma camada pública do Social Jurídico para pesquisar processos, gerar dossiês, visualizar timelines e consultar inteligência jurídica.</p>
-      <form class="searchBox" action="/app/busca" method="get">
-        <input name="q" placeholder="Digite nome, empresa, CPF/CNPJ, OAB ou CNJ" required />
-        <button type="submit">Buscar agora</button>
-      </form>
-      <div class="stats">
-        <div class="stat"><b>DJEN</b><span>publicações públicas</span></div>
-        <div class="stat"><b>DataJud</b><span>enriquecimento CNJ</span></div>
-        <div class="stat"><b>IA</b><span>análise jurídica</span></div>
-        <div class="stat"><b>API</b><span>uso comercial</span></div>
-      </div>
-      <div class="grid">
-        <div class="card"><h3>Busca processual</h3><p class="muted">Pesquisa textual, ranking e paginação com visual alinhado ao Social Jurídico.</p></div>
-        <div class="card"><h3>Dossiê público</h3><p class="muted">Pessoas, empresas, documentos e processos vinculados em uma visão única.</p></div>
-        <div class="card"><h3>Timeline + IA</h3><p class="muted">Movimentações, publicações e análise de risco em uma página pública.</p></div>
-      </div>
-    </section>`
-  });
+  return layout({ title: 'Busca Processual', body: `<section class="hero"><div class="kicker">Busca pública processual</div><h1>Encontre processos, partes e advogados <span class="gold">em segundos.</span></h1><p class="lead">Uma camada pública do Social Jurídico para pesquisar processos, gerar dossiês, visualizar timelines e consultar inteligência jurídica.</p><form class="searchBox" action="/app/busca" method="get"><input name="q" placeholder="Digite nome, empresa, CPF/CNPJ, OAB ou CNJ" required/><button type="submit">Buscar agora</button></form><div class="stats"><div class="stat"><b>DJEN</b><span>publicações públicas</span></div><div class="stat"><b>DataJud</b><span>enriquecimento CNJ</span></div><div class="stat"><b>IA</b><span>análise jurídica</span></div><div class="stat"><b>API</b><span>uso comercial</span></div></div><div class="grid"><div class="card"><h3>Busca viva</h3><p class="muted">Se não houver resultado local, a API consulta o DJEN e tenta enriquecer a base automaticamente.</p></div><div class="card"><h3>Dossiê público</h3><p class="muted">Pessoas, empresas, documentos e processos vinculados em uma visão única.</p></div><div class="card"><h3>Timeline + IA</h3><p class="muted">Movimentações, publicações e análise de risco em uma página pública.</p></div></div></section>` });
 }
 
-export function searchPage({ query, data }) {
+export function searchPage({ query, data, live }) {
   const resultados = data?.resultados || [];
-  return layout({
-    title: `Busca por ${query || ''}`,
-    body: `<section class="hero" style="padding-bottom:22px">
-      <div class="kicker">Resultados públicos</div>
-      <h1>Busca por <span class="gold">${escapeHtml(query || '')}</span></h1>
-      <form class="searchBox" action="/app/busca" method="get">
-        <input name="q" value="${escapeHtml(query || '')}" placeholder="Digite nome, empresa, CPF/CNPJ, OAB ou CNJ" required />
-        <button type="submit">Buscar</button>
-      </form>
-      <p class="muted">${data?.total || 0} resultado(s), página ${data?.pagina || 1} de ${data?.total_paginas || 1}.</p>
-    </section>
-    <div class="results">${resultados.length ? resultados.map(resultCard).join('') : '<div class="card"><h3>Nenhum resultado encontrado</h3><p class="muted">Tente outro termo ou enriqueça a base pelo DJEN.</p></div>'}</div>`
-  });
+  const liveMsg = live?.enriqueceu_base ? `Busca viva ativada: consultamos o DJEN, enriquecemos ${live?.enriquecimento?.processos_enriquecidos || 0} processo(s) e atualizamos o índice.` : 'Resultado obtido diretamente do índice local.';
+  return layout({ title: `Busca por ${query || ''}`, body: `<section class="hero" style="padding-bottom:22px"><div class="kicker">Resultados públicos</div><h1>Busca por <span class="gold">${escapeHtml(query || '')}</span></h1><form class="searchBox" action="/app/busca" method="get"><input name="q" value="${escapeHtml(query || '')}" placeholder="Digite nome, empresa, CPF/CNPJ, OAB ou CNJ" required/><button type="submit">Buscar</button></form><div class="liveBox">${escapeHtml(liveMsg)}</div><p class="muted">${data?.total || 0} resultado(s), página ${data?.pagina || 1} de ${data?.total_paginas || 1}.</p></section><div class="results">${resultados.length ? resultados.map(resultCard).join('') : '<div class="card"><h3>Nenhum resultado encontrado</h3><p class="muted">A busca viva foi executada, mas nenhuma publicação compatível foi localizada nas fontes públicas consultadas.</p></div>'}</div>` });
 }
 
 export function processPage({ numeroCnj, timeline, analise }) {
-  const processo = timeline?.processo || {};
-  const eventos = timeline?.eventos || [];
-  const risco = analise?.analise?.risco;
-  return layout({
-    title: processo.numero_cnj_formatado || numeroCnj,
-    body: `<section class="hero" style="padding-bottom:22px">
-      <div class="kicker">Página do processo</div>
-      <h1>${escapeHtml(processo.numero_cnj_formatado || numeroCnj)}</h1>
-      <p class="lead">${escapeHtml(processo.classe || 'Processo público')} — ${escapeHtml(processo.tribunal || '')}</p>
-      <div class="grid">
-        <div class="card"><h3>Parte ativa</h3><p class="muted">${escapeHtml(processo.parte_ativa || '-')}</p></div>
-        <div class="card"><h3>Parte passiva</h3><p class="muted">${escapeHtml(processo.parte_passiva || '-')}</p></div>
-        <div class="card"><h3>Risco IA</h3><p class="muted">${escapeHtml(risco?.nivel || 'não analisado')}</p></div>
-      </div>
-    </section>
-    <h2 class="sectionTitle">Timeline processual</h2>
-    <div class="timeline">${eventos.length ? eventos.map(e => `<div class="event"><b>${escapeHtml(e.titulo || e.tipo)}</b><p class="meta">${escapeHtml(e.data || '-')} · ${escapeHtml(e.origem || '-')}</p><p class="meta">${escapeHtml(e.descricao || '').slice(0, 520)}</p></div>`).join('') : '<div class="card">Nenhum evento encontrado.</div>'}</div>`
-  });
+  const processo = timeline?.processo || {}; const eventos = timeline?.eventos || []; const risco = analise?.analise?.risco;
+  return layout({ title: processo.numero_cnj_formatado || numeroCnj, body: `<section class="hero" style="padding-bottom:22px"><div class="kicker">Página do processo</div><h1>${escapeHtml(processo.numero_cnj_formatado || numeroCnj)}</h1><p class="lead">${escapeHtml(processo.classe || 'Processo público')} — ${escapeHtml(processo.tribunal || '')}</p><div class="grid"><div class="card"><h3>Parte ativa</h3><p class="muted">${escapeHtml(processo.parte_ativa || '-')}</p></div><div class="card"><h3>Parte passiva</h3><p class="muted">${escapeHtml(processo.parte_passiva || '-')}</p></div><div class="card"><h3>Risco IA</h3><p class="muted">${escapeHtml(risco?.nivel || 'não analisado')}</p></div></div></section><h2 class="sectionTitle">Timeline processual</h2><div class="timeline">${eventos.length ? eventos.map(e => `<div class="event"><b>${escapeHtml(e.titulo || e.tipo)}</b><p class="meta">${escapeHtml(e.data || '-')} · ${escapeHtml(e.origem || '-')}</p><p class="meta">${escapeHtml(e.descricao || '').slice(0, 520)}</p></div>`).join('') : '<div class="card">Nenhum evento encontrado.</div>'}</div>` });
 }
 
 export function commercialPage() {
-  return layout({
-    title: 'API Comercial',
-    body: `<section class="hero"><div class="kicker">API Comercial</div><h1>Dados processuais para integrar <span class="gold">ao seu sistema.</span></h1><p class="lead">Endpoints comerciais com API keys, limites por plano, logs de uso e rotas versionadas.</p>
-      <div class="grid"><div class="card"><h3>Free</h3><p class="muted">Teste e validação técnica.</p></div><div class="card"><h3>Start / Pro</h3><p class="muted">Uso comercial escalável para escritórios e lawtechs.</p></div><div class="card"><h3>Enterprise</h3><p class="muted">Alto volume, integração e monitoramento.</p></div></div>
-      <div class="actions" style="justify-content:center;margin-top:26px"><a class="btn" href="/docs">Ver documentação</a></div></section>`
-  });
+  return layout({ title: 'API Comercial', body: `<section class="hero"><div class="kicker">API Comercial</div><h1>Dados processuais para integrar <span class="gold">ao seu sistema.</span></h1><p class="lead">Endpoints comerciais com API keys, limites por plano, logs de uso e rotas versionadas.</p><div class="grid"><div class="card"><h3>Free</h3><p class="muted">Teste e validação técnica.</p></div><div class="card"><h3>Start / Pro</h3><p class="muted">Uso comercial escalável para escritórios e lawtechs.</p></div><div class="card"><h3>Enterprise</h3><p class="muted">Alto volume, integração e monitoramento.</p></div></div><div class="actions" style="justify-content:center;margin-top:26px"><a class="btn" href="/docs">Ver documentação</a></div></section>` });
 }
