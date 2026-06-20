@@ -5,6 +5,7 @@ import { processosFase2Routes } from './processos-fase2.routes.js';
 import { processosRoutes } from './processos.routes.js';
 import { publicoFase6Routes } from './publico-fase6.routes.js';
 import { publicoFase789Routes } from './publico-fase789.routes.js';
+import { publicoFase10Routes } from './publico-fase10.routes.js';
 import { publicoRoutes } from './publico.routes.js';
 
 export async function registerRoutes(app) {
@@ -16,11 +17,12 @@ export async function registerRoutes(app) {
   await app.register(publicoRoutes);
   await app.register(publicoFase6Routes);
   await app.register(publicoFase789Routes);
+  await app.register(publicoFase10Routes);
 
   app.get('/', async () => ({
     success: true,
     service: 'API Social Jurídico',
-    version: '0.8.0',
-    message: 'API processual com entidades, dossiês públicos e inteligência jurídica.',
+    version: '0.9.0',
+    message: 'API processual com busca full-text, ranking e paginação.',
   }));
 }
