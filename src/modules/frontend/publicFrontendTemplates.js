@@ -4,50 +4,62 @@ function layout({ title = 'Busca Processual', body = '', extraScript = '' }) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${title} | API Social Jurídico</title>
+  <title>${title} | Social Jurídico</title>
   <style>
-    :root { --bg:#0f1115; --panel:#171a21; --muted:#9ca3af; --text:#f9fafb; --brand:#8b1e2d; --brand2:#b91c1c; --line:#2a2f3a; }
+    :root { --bg:#171513; --bg2:#242424; --panel:#1d1c1a; --panel2:#25231f; --muted:#b8b8b8; --text:#ffffff; --gold:#e2bd31; --gold2:#c99b17; --line:rgba(226,189,49,.23); --shadow:rgba(226,189,49,.16); }
     * { box-sizing: border-box; }
-    body { margin:0; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:linear-gradient(180deg,#111827,#0f1115); color:var(--text); }
+    body { margin:0; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:radial-gradient(circle at 50% 0%,rgba(226,189,49,.16),transparent 34%),linear-gradient(180deg,#191714 0%,#151515 56%,#252525 100%); color:var(--text); }
+    body:before { content:''; position:fixed; inset:0; pointer-events:none; background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px); background-size:38px 38px; mask-image:linear-gradient(to bottom,black,transparent 70%); }
     a { color:inherit; }
-    .wrap { max-width:1120px; margin:0 auto; padding:28px 18px 60px; }
-    .nav { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:46px; }
-    .logo { display:flex; align-items:center; gap:12px; font-weight:800; letter-spacing:-.02em; }
-    .mark { width:38px; height:38px; border-radius:12px; background:linear-gradient(135deg,var(--brand),var(--brand2)); display:grid; place-items:center; box-shadow:0 10px 30px rgba(185,28,28,.25); }
-    .nav a { text-decoration:none; color:var(--muted); font-size:14px; margin-left:18px; }
-    .hero { text-align:center; padding:54px 0 32px; }
-    h1 { font-size:clamp(34px,5vw,64px); line-height:1.02; margin:0 0 18px; letter-spacing:-.05em; }
-    .lead { color:#cbd5e1; max-width:760px; margin:0 auto 28px; font-size:18px; line-height:1.6; }
-    .searchBox { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:22px; padding:12px; display:flex; gap:10px; max-width:820px; margin:0 auto; box-shadow:0 20px 60px rgba(0,0,0,.25); }
-    input, select { width:100%; background:#0b0d11; color:var(--text); border:1px solid var(--line); border-radius:14px; padding:15px 16px; font-size:16px; outline:none; }
-    button,.btn { background:linear-gradient(135deg,var(--brand),var(--brand2)); color:white; border:0; border-radius:14px; padding:15px 22px; font-weight:700; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; white-space:nowrap; }
-    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:32px; }
-    .card { background:rgba(255,255,255,.055); border:1px solid rgba(255,255,255,.1); border-radius:20px; padding:20px; }
+    .wrap { max-width:1180px; margin:0 auto; padding:0 18px 60px; }
+    .navShell { position:sticky; top:0; z-index:10; background:rgba(34,34,34,.94); border-bottom:1px solid rgba(255,255,255,.08); box-shadow:0 1px 0 rgba(226,189,49,.25) inset; backdrop-filter:blur(14px); }
+    .nav { max-width:1180px; margin:0 auto; min-height:70px; display:flex; align-items:center; justify-content:space-between; gap:18px; padding:0 18px; }
+    .logo { display:flex; align-items:center; gap:12px; font-weight:900; letter-spacing:-.035em; font-size:22px; }
+    .mark { width:38px; height:38px; border-radius:11px; background:linear-gradient(135deg,var(--gold),var(--gold2)); color:#161616; display:grid; place-items:center; box-shadow:0 12px 34px rgba(226,189,49,.28); font-weight:900; }
+    .nav a { text-decoration:none; color:#ededed; font-size:14px; font-weight:800; margin-left:22px; opacity:.92; }
+    .nav a:hover { color:var(--gold); }
+    .nav .navCta { background:linear-gradient(135deg,var(--gold),var(--gold2)); color:#171717; padding:12px 24px; border-radius:999px; box-shadow:0 16px 40px rgba(226,189,49,.22); }
+    .hero { text-align:center; padding:82px 0 48px; }
+    .kicker { color:var(--gold); font-weight:900; font-size:13px; letter-spacing:.14em; text-transform:uppercase; margin-bottom:18px; }
+    h1 { font-size:clamp(38px,6vw,72px); line-height:1.03; margin:0 0 22px; letter-spacing:-.07em; font-weight:950; }
+    h1 .gold { color:var(--gold); }
+    .lead { color:#e4e4e4; max-width:790px; margin:0 auto 30px; font-size:19px; line-height:1.6; }
+    .searchBox { background:rgba(17,17,17,.62); border:1px solid var(--line); border-radius:999px; padding:10px; display:flex; gap:10px; max-width:850px; margin:0 auto; box-shadow:0 28px 80px rgba(0,0,0,.36),0 0 60px var(--shadow); }
+    input, select { width:100%; background:#111; color:var(--text); border:1px solid rgba(255,255,255,.12); border-radius:999px; padding:17px 20px; font-size:16px; outline:none; }
+    input:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(226,189,49,.12); }
+    button,.btn { background:linear-gradient(135deg,var(--gold),var(--gold2)); color:#171717; border:0; border-radius:999px; padding:16px 25px; font-weight:900; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; white-space:nowrap; box-shadow:0 16px 35px rgba(226,189,49,.22); }
+    .secondary { background:transparent; color:#fff; border:1px solid rgba(255,255,255,.22); box-shadow:none; }
+    .stats { max-width:860px; margin:34px auto 0; background:rgba(16,16,16,.6); border:1px solid var(--line); border-radius:18px; display:grid; grid-template-columns:repeat(4,1fr); overflow:hidden; }
+    .stat { padding:18px; border-right:1px solid rgba(226,189,49,.16); text-align:left; }
+    .stat:last-child { border-right:0; }
+    .stat b { color:var(--gold); font-size:24px; display:block; line-height:1; }
+    .stat span { color:#aaa; font-size:11px; font-weight:900; text-transform:uppercase; }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:36px; }
+    .card { background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025)); border:1px solid var(--line); border-radius:20px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.22); }
     .card h3 { margin:0 0 8px; font-size:18px; }
     .muted { color:var(--muted); }
-    .results { margin-top:26px; display:grid; gap:14px; }
-    .result { background:#151922; border:1px solid var(--line); border-radius:18px; padding:18px; }
-    .result h2 { font-size:19px; margin:0 0 8px; }
-    .pill { display:inline-flex; border:1px solid var(--line); color:#cbd5e1; padding:5px 10px; border-radius:999px; font-size:12px; margin:4px 6px 4px 0; }
-    .meta { color:var(--muted); font-size:14px; line-height:1.6; }
-    .actions { margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; }
-    .secondary { background:#232936; }
-    .sectionTitle { margin:28px 0 12px; }
-    .timeline { border-left:2px solid var(--line); padding-left:18px; display:grid; gap:14px; }
-    .event { position:relative; background:#151922; border:1px solid var(--line); border-radius:16px; padding:16px; }
-    .event:before { content:''; position:absolute; left:-26px; top:18px; width:12px; height:12px; border-radius:50%; background:var(--brand2); }
-    .footer { margin-top:48px; color:var(--muted); font-size:13px; text-align:center; }
-    @media (max-width:800px){ .searchBox{flex-direction:column}.grid{grid-template-columns:1fr}.nav{align-items:flex-start}.navLinks{display:none} }
+    .results { margin-top:28px; display:grid; gap:16px; }
+    .result { background:linear-gradient(180deg,#1e1e1e,#171717); border:1px solid var(--line); border-radius:22px; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.22); }
+    .result h2 { font-size:22px; margin:0 0 10px; letter-spacing:-.03em; }
+    .pill { display:inline-flex; border:1px solid var(--line); color:#f1d36b; padding:6px 11px; border-radius:999px; font-size:12px; font-weight:800; margin:4px 6px 4px 0; background:rgba(226,189,49,.07); }
+    .meta { color:var(--muted); font-size:14px; line-height:1.7; }
+    .actions { margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; }
+    .sectionTitle { margin:34px 0 14px; font-size:30px; letter-spacing:-.04em; }
+    .timeline { border-left:2px solid var(--line); padding-left:20px; display:grid; gap:14px; }
+    .event { position:relative; background:#1d1d1d; border:1px solid var(--line); border-radius:18px; padding:18px; }
+    .event:before { content:''; position:absolute; left:-28px; top:20px; width:12px; height:12px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 6px rgba(226,189,49,.12); }
+    .footer { margin-top:54px; color:#9f9f9f; font-size:13px; text-align:center; }
+    @media (max-width:850px){ .searchBox{border-radius:24px;flex-direction:column}.grid,.stats{grid-template-columns:1fr}.stat{border-right:0;border-bottom:1px solid rgba(226,189,49,.16)}.navLinks{display:none}.hero{padding-top:54px} }
   </style>
 </head>
 <body>
+  <div class="navShell"><nav class="nav">
+    <div class="logo"><span class="mark">⚖</span><span>Social Jurídico</span></div>
+    <div class="navLinks"><a href="/app">Busca Pública</a><a href="/docs">API Docs</a><a href="/app/comercial">API Comercial</a><a class="navCta" href="https://www.socialjuridico.com.br" target="_blank">Social Jurídico</a></div>
+  </nav></div>
   <main class="wrap">
-    <nav class="nav">
-      <div class="logo"><span class="mark">SJ</span><span>API Social Jurídico</span></div>
-      <div class="navLinks"><a href="/app">Buscar</a><a href="/docs">API Docs</a><a href="/app/comercial">API Comercial</a></div>
-    </nav>
     ${body}
-    <div class="footer">Dados processuais públicos. Protótipo de produto público da API Social Jurídico.</div>
+    <div class="footer">Social Jurídico API · dados processuais públicos, busca, dossiês e inteligência jurídica.</div>
   </main>
   ${extraScript}
 </body>
@@ -77,16 +89,23 @@ export function homePage() {
   return layout({
     title: 'Busca Processual',
     body: `<section class="hero">
-      <h1>Busque processos, partes, empresas e advogados.</h1>
-      <p class="lead">Protótipo público da API Social Jurídico com índice processual, dossiê, timeline e inteligência jurídica.</p>
+      <div class="kicker">Busca pública processual</div>
+      <h1>Encontre processos, partes e advogados <span class="gold">em segundos.</span></h1>
+      <p class="lead">Uma camada pública do Social Jurídico para pesquisar processos, gerar dossiês, visualizar timelines e consultar inteligência jurídica.</p>
       <form class="searchBox" action="/app/busca" method="get">
         <input name="q" placeholder="Digite nome, empresa, CPF/CNPJ, OAB ou CNJ" required />
-        <button type="submit">Buscar</button>
+        <button type="submit">Buscar agora</button>
       </form>
+      <div class="stats">
+        <div class="stat"><b>DJEN</b><span>publicações públicas</span></div>
+        <div class="stat"><b>DataJud</b><span>enriquecimento CNJ</span></div>
+        <div class="stat"><b>IA</b><span>análise jurídica</span></div>
+        <div class="stat"><b>API</b><span>uso comercial</span></div>
+      </div>
       <div class="grid">
-        <div class="card"><h3>Busca pública</h3><p class="muted">Pesquisa textual, ranking e paginação.</p></div>
-        <div class="card"><h3>Dossiê</h3><p class="muted">Pessoas, empresas e processos vinculados.</p></div>
-        <div class="card"><h3>Timeline</h3><p class="muted">Eventos processuais em ordem cronológica.</p></div>
+        <div class="card"><h3>Busca processual</h3><p class="muted">Pesquisa textual, ranking e paginação com visual alinhado ao Social Jurídico.</p></div>
+        <div class="card"><h3>Dossiê público</h3><p class="muted">Pessoas, empresas, documentos e processos vinculados em uma visão única.</p></div>
+        <div class="card"><h3>Timeline + IA</h3><p class="muted">Movimentações, publicações e análise de risco em uma página pública.</p></div>
       </div>
     </section>`
   });
@@ -96,15 +115,16 @@ export function searchPage({ query, data }) {
   const resultados = data?.resultados || [];
   return layout({
     title: `Busca por ${query || ''}`,
-    body: `<section>
-      <h1>Resultados de busca</h1>
+    body: `<section class="hero" style="padding-bottom:22px">
+      <div class="kicker">Resultados públicos</div>
+      <h1>Busca por <span class="gold">${escapeHtml(query || '')}</span></h1>
       <form class="searchBox" action="/app/busca" method="get">
         <input name="q" value="${escapeHtml(query || '')}" placeholder="Digite nome, empresa, CPF/CNPJ, OAB ou CNJ" required />
         <button type="submit">Buscar</button>
       </form>
       <p class="muted">${data?.total || 0} resultado(s), página ${data?.pagina || 1} de ${data?.total_paginas || 1}.</p>
-      <div class="results">${resultados.length ? resultados.map(resultCard).join('') : '<div class="card"><h3>Nenhum resultado encontrado</h3><p class="muted">Tente outro termo ou enriqueça a base pelo DJEN.</p></div>'}</div>
-    </section>`
+    </section>
+    <div class="results">${resultados.length ? resultados.map(resultCard).join('') : '<div class="card"><h3>Nenhum resultado encontrado</h3><p class="muted">Tente outro termo ou enriqueça a base pelo DJEN.</p></div>'}</div>`
   });
 }
 
@@ -114,7 +134,8 @@ export function processPage({ numeroCnj, timeline, analise }) {
   const risco = analise?.analise?.risco;
   return layout({
     title: processo.numero_cnj_formatado || numeroCnj,
-    body: `<section>
+    body: `<section class="hero" style="padding-bottom:22px">
+      <div class="kicker">Página do processo</div>
       <h1>${escapeHtml(processo.numero_cnj_formatado || numeroCnj)}</h1>
       <p class="lead">${escapeHtml(processo.classe || 'Processo público')} — ${escapeHtml(processo.tribunal || '')}</p>
       <div class="grid">
@@ -122,17 +143,17 @@ export function processPage({ numeroCnj, timeline, analise }) {
         <div class="card"><h3>Parte passiva</h3><p class="muted">${escapeHtml(processo.parte_passiva || '-')}</p></div>
         <div class="card"><h3>Risco IA</h3><p class="muted">${escapeHtml(risco?.nivel || 'não analisado')}</p></div>
       </div>
-      <h2 class="sectionTitle">Timeline processual</h2>
-      <div class="timeline">${eventos.length ? eventos.map(e => `<div class="event"><b>${escapeHtml(e.titulo || e.tipo)}</b><p class="meta">${escapeHtml(e.data || '-')} · ${escapeHtml(e.origem || '-')}</p><p class="meta">${escapeHtml(e.descricao || '').slice(0, 520)}</p></div>`).join('') : '<div class="card">Nenhum evento encontrado.</div>'}</div>
-    </section>`
+    </section>
+    <h2 class="sectionTitle">Timeline processual</h2>
+    <div class="timeline">${eventos.length ? eventos.map(e => `<div class="event"><b>${escapeHtml(e.titulo || e.tipo)}</b><p class="meta">${escapeHtml(e.data || '-')} · ${escapeHtml(e.origem || '-')}</p><p class="meta">${escapeHtml(e.descricao || '').slice(0, 520)}</p></div>`).join('') : '<div class="card">Nenhum evento encontrado.</div>'}</div>`
   });
 }
 
 export function commercialPage() {
   return layout({
     title: 'API Comercial',
-    body: `<section class="hero"><h1>API Comercial Social Jurídico</h1><p class="lead">Endpoints comerciais com API keys, limites por plano, logs de uso e rotas versionadas.</p>
-      <div class="grid"><div class="card"><h3>Free</h3><p class="muted">Teste e validação.</p></div><div class="card"><h3>Start/Pro</h3><p class="muted">Uso comercial escalável.</p></div><div class="card"><h3>Enterprise</h3><p class="muted">Alto volume e integrações.</p></div></div>
+    body: `<section class="hero"><div class="kicker">API Comercial</div><h1>Dados processuais para integrar <span class="gold">ao seu sistema.</span></h1><p class="lead">Endpoints comerciais com API keys, limites por plano, logs de uso e rotas versionadas.</p>
+      <div class="grid"><div class="card"><h3>Free</h3><p class="muted">Teste e validação técnica.</p></div><div class="card"><h3>Start / Pro</h3><p class="muted">Uso comercial escalável para escritórios e lawtechs.</p></div><div class="card"><h3>Enterprise</h3><p class="muted">Alto volume, integração e monitoramento.</p></div></div>
       <div class="actions" style="justify-content:center;margin-top:26px"><a class="btn" href="/docs">Ver documentação</a></div></section>`
   });
 }
