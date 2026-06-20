@@ -1,6 +1,6 @@
 # API Social Jurídico
 
-API processual para DataJud, DJEN, busca pública, CRM, dossiês, inteligência jurídica, resolvedor CPF/CNPJ, vínculos processuais, API comercial e frontend público inicial.
+API processual para DataJud, DJEN, busca pública, CRM, dossiês, inteligência jurídica, resolvedor CPF/CNPJ, busca robusta por OAB, vínculos processuais, API comercial e frontend público inicial.
 
 ## Front público
 
@@ -56,6 +56,71 @@ API comercial:
 ```http
 x-commercial-api-key: sj_live_xxxxx
 ```
+
+## Fase 13 — Busca robusta por OAB
+
+A busca robusta por OAB consulta DJEN, extrai CNJs, deduplica processos, enriquece com DataJud quando possível e retorna uma resposta própria para integrações.
+
+### POST `/api/publico/oab/processos`
+
+Requer `x-api-key` interno.
+
+```json
+{
+  "uf": "RS",
+  "oab": "140234",
+  "limite_djen": 20,
+  "incluir_detalhes": true,
+  "limite_detalhes": 10
+}
+```
+
+Também aceita:
+
+```json
+{
+  "termo": "RS 140234"
+}
+```
+
+### POST `/api/v1/oab/processos`
+
+Rota comercial, requer `x-commercial-api-key`.
+
+```json
+{
+  "uf": "RS",
+  "oab": "140234",
+  "limite_djen": 20,
+  "incluir_detalhes": true,
+  "limite_detalhes": 10
+}
+```
+
+Resposta resumida:
+
+```json
+{
+  "success": true,
+  "data": {
+    "consulta": {
+      "tipo": "oab",
+      "uf": "RS",
+      "numero": "140234",
+      "termo": "RS 140234"
+    },
+    "metricas": {
+      "processos_unicos": 0,
+      "detalhados_datajud": 0,
+      "djen_total": 0,
+      "cnjs_extraidos_djen": 0
+    },
+    "processos": []
+  }
+}
+```
+
+Cada processo pode incluir capa, partes agrupadas, advogados, últimas movimentações, resumo IA, fontes e `vinculo_oab`. Se a fonte não confirmar qual parte é representada pela OAB, a API retorna alerta para confirmação manual.
 
 ## Resolvedor CPF/CNPJ
 
