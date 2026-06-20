@@ -5,6 +5,7 @@ import { frontendRoutes } from './frontend.routes.js';
 import { healthRoutes } from './health.routes.js';
 import { monitoramentoRoutes } from './monitoramento.routes.js';
 import { plataformaMonitoramentoRoutes } from './plataforma-monitoramento.routes.js';
+import { plataformaVinculosRoutes } from './plataforma-vinculos.routes.js';
 import { processosFase2Routes } from './processos-fase2.routes.js';
 import { processosRoutes } from './processos.routes.js';
 import { publicoFase6Routes } from './publico-fase6.routes.js';
@@ -27,13 +28,14 @@ export async function registerRoutes(app) {
   await app.register(publicoLiveRoutes);
   await app.register(cpfResolverRoutes);
   await app.register(plataformaMonitoramentoRoutes);
+  await app.register(plataformaVinculosRoutes);
   await app.register(comercialRoutes);
 
   app.get('/', async () => ({
     success: true,
-    service: 'API Social Jurídico',
-    version: '1.4.0',
-    message: 'API processual com busca viva, monitoramento para plataformas, eventos, resolvedor CPF/CNPJ, API comercial e inteligência jurídica.',
+    service: 'API Social Juridico',
+    version: '1.4.1',
+    message: 'API processual com busca viva, monitoramento para plataformas, eventos, vinculos confirmados, resolvedor CPF/CNPJ, API comercial e inteligencia juridica.',
     app: '/app',
     docs: '/docs',
   }));
