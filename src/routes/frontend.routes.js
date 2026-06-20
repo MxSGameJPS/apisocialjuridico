@@ -1,4 +1,4 @@
-import { buscarProcessosFullText } from '../modules/publico/buscaFullTextService.js';
+import { buscaVivaProcessual } from '../modules/publico/buscaVivaService.js';
 import { analisarProcessoPublico } from '../modules/publico/inteligenciaJuridicaService.js';
 import { montarTimelineProcessual } from '../modules/publico/timelineService.js';
 import { commercialPage, homePage, processPage, searchPage } from '../modules/frontend/publicFrontendTemplates.js';
@@ -19,15 +19,18 @@ export async function frontendRoutes(app) {
       return html(reply, homePage());
     }
 
-    const data = await buscarProcessosFullText({
+    const resultado = await buscaVivaProcessual({
       termo: query,
       tribunal: request.query?.tribunal || null,
       pagina: Number(request.query?.pagina || 1),
       porPagina: Number(request.query?.por_pagina || 10),
-      ordenarPor: 'relevancia',
+      enriquecer: request.query?.vivo !== 'false',
+      limiteDjen: Number(request.query?.limite_djen || 10),
+      dataInicio: request.query?.data_inicio || null,
+      dataFim: request.query?.data_fim || null,
     });
 
-    return html(reply, searchPage({ query, data }));
+    return html(reply, searchPage({ query, data: resultado.busca, live: resultado }));
   });
 
   app.get('/app/processo/:numeroCnj', async (request, reply) => {
