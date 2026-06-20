@@ -1,3 +1,5 @@
+create extension if not exists pg_trgm;
+
 create table if not exists public.alertas_publicos (
   id uuid primary key default gen_random_uuid(),
   usuario_id text null,
