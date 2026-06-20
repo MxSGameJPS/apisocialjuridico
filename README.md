@@ -1,6 +1,21 @@
 # API Social Jurídico
 
-API processual para DataJud, DJEN, busca pública, CRM, dossiês, inteligência jurídica e API comercial.
+API processual para DataJud, DJEN, busca pública, CRM, dossiês, inteligência jurídica, API comercial e frontend público inicial.
+
+## Front público
+
+```txt
+https://n8n.socialjuridico.com.br/app
+```
+
+Rotas HTML:
+
+```txt
+/app
+/app/busca?q=SABESP
+/app/processo/15033935120258260269
+/app/comercial
+```
 
 ## Documentação Swagger
 
@@ -39,6 +54,24 @@ API comercial:
 x-commercial-api-key: sj_live_xxxxx
 ```
 
+## Fase 12 — Front público
+
+### GET `/app`
+
+Página inicial do buscador processual.
+
+### GET `/app/busca?q=SABESP`
+
+Página de resultados usando o índice full-text.
+
+### GET `/app/processo/:numeroCnj`
+
+Página pública do processo com timeline e análise jurídica.
+
+### GET `/app/comercial`
+
+Página inicial institucional da API comercial.
+
 ## Fase 11 — API Comercial
 
 ### GET `/api/comercial/planos`
@@ -69,35 +102,9 @@ Lista limites dos planos `free`, `start`, `pro` e `enterprise`.
 
 A chave retorna apenas uma vez no campo `api_key`.
 
-### POST `/api/comercial/api-keys/status`
-
-```json
-{
-  "api_key_id": "uuid-da-chave",
-  "ativo": false
-}
-```
-
-### POST `/api/comercial/uso`
-
-```json
-{
-  "cliente_id": "uuid-do-cliente",
-  "limite": 100
-}
-```
-
 ## API Comercial v1
 
 ### POST `/api/v1/busca/processos`
-
-Header:
-
-```http
-x-commercial-api-key: sj_live_xxxxx
-```
-
-Body:
 
 ```json
 {
@@ -125,21 +132,3 @@ Body:
   "atualizar_datajud": false
 }
 ```
-
-## Rotas públicas internas principais
-
-### POST `/api/publico/busca/full-text`
-
-Busca full-text com ranking e paginação.
-
-### POST `/api/publico/dossie`
-
-Dossiê público por documento, nome ou entidade.
-
-### POST `/api/publico/inteligencia/analisar-processo`
-
-Classificação heurística de área, fase, risco e sugestões.
-
-### POST `/api/publico/entidades/extrair`
-
-Extrai entidades, CPF/CNPJ, RG, nascimento e vínculos.
