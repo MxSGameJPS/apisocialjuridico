@@ -14,6 +14,8 @@ export async function frontendRoutes(app) {
 
   app.get('/app/busca', async (request, reply) => {
     const query = String(request.query?.q || '').trim();
+    const limiteDjen = Number(request.query?.limite_djen || 10);
+    const porPagina = Number(request.query?.por_pagina || 10);
 
     if (!query) {
       return html(reply, homePage());
@@ -23,12 +25,17 @@ export async function frontendRoutes(app) {
       termo: query,
       tribunal: request.query?.tribunal || null,
       pagina: Number(request.query?.pagina || 1),
-      porPagina: Number(request.query?.por_pagina || 10),
+      porPagina,
       enriquecer: request.query?.vivo !== 'false',
-      limiteDjen: Number(request.query?.limite_djen || 10),
+      limiteDjen,
       dataInicio: request.query?.data_inicio || null,
       dataFim: request.query?.data_fim || null,
     });
+
+    resultado.parametros = {
+      limite_djen: limiteDjen,
+      por_pagina: porPagina,
+    };
 
     return html(reply, searchPage({ query, data: resultado.busca, live: resultado }));
   });
