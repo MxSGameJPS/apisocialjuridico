@@ -1,6 +1,6 @@
 # API Social Jurídico
 
-API processual para importação, normalização, resumo, monitoramento, busca pública, entidades, dossiês e inteligência jurídica.
+API processual para importação, normalização, resumo, monitoramento, busca pública, entidades, dossiês, inteligência jurídica e busca full-text.
 
 ## Documentação Swagger
 
@@ -21,6 +21,7 @@ docs/supabase-busca-publica-djen.sql
 docs/supabase-fase5-indice-publico-processual.sql
 docs/supabase-fase6-busca-alertas-similaridade.sql
 docs/supabase-fases7-8-9-entidades-dossie-inteligencia.sql
+docs/supabase-fase10-busca-fulltext.sql
 ```
 
 ## Segurança
@@ -29,11 +30,33 @@ docs/supabase-fases7-8-9-entidades-dossie-inteligencia.sql
 x-api-key: sua_API_SECRET_KEY
 ```
 
+## Fase 10 — Busca full-text, ranking e paginação
+
+### POST `/api/publico/busca/full-text`
+
+```json
+{
+  "termo": "SABESP",
+  "tribunal": "TJSP",
+  "pagina": 1,
+  "por_pagina": 20,
+  "ordenar_por": "relevancia"
+}
+```
+
+Também aceita busca direta por CNJ:
+
+```json
+{
+  "termo": "15033935120258260269",
+  "pagina": 1,
+  "por_pagina": 10
+}
+```
+
 ## Fase 7 — Motor de Entidades
 
 ### POST `/api/publico/entidades/extrair`
-
-Extrai entidades, documentos, telefones, RGs e datas de nascimento do texto público indexado.
 
 ```json
 {
@@ -61,14 +84,6 @@ Extrai entidades, documentos, telefones, RGs e datas de nascimento do texto púb
 }
 ```
 
-Também aceita:
-
-```json
-{
-  "nome": "AUGUSTO SANTANA CRUZ CAMPOS"
-}
-```
-
 ## Fase 9 — Inteligência Jurídica
 
 ### POST `/api/publico/inteligencia/analisar-processo`
@@ -78,8 +93,6 @@ Também aceita:
   "numero_cnj": "15033935120258260269"
 }
 ```
-
-Retorna classificação heurística de área, fase, risco e sugestões.
 
 ### POST `/api/publico/inteligencia/recorrencia`
 
@@ -143,15 +156,6 @@ Retorna classificação heurística de área, fase, risco e sugestões.
 }
 ```
 
-### POST `/api/publico/alertas/executar`
-
-```json
-{
-  "limite_alertas": 25,
-  "limite_por_alerta": 10
-}
-```
-
 ### POST `/api/publico/processos/similares`
 
 ```json
@@ -161,29 +165,3 @@ Retorna classificação heurística de área, fase, risco e sugestões.
   "score_minimo": 0.12
 }
 ```
-
-### POST `/api/publico/processos/documentos-extraidos`
-
-```json
-{
-  "numero_cnj": "15033935120258260269"
-}
-```
-
-## Rotas anteriores principais
-
-### POST `/api/publico/djen/buscar`
-
-Busca publicações públicas no DJEN usando filtros flexíveis.
-
-### POST `/api/publico/processos/enriquecer-busca`
-
-Busca no DJEN, extrai CNJs, consulta DataJud e salva/atualiza o índice público processual.
-
-### POST `/api/publico/processos/enriquecer-pendentes`
-
-Pega publicações já salvas em `djen_publicacoes`, consulta DataJud e atualiza o índice público.
-
-### POST `/api/publico/processos/buscar-indice`
-
-Busca dentro da base pública já indexada.
