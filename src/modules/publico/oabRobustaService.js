@@ -2,8 +2,8 @@ import { buscarProcessoPorNumero } from '../processos/processoService.js';
 import { buscaVivaProcessual } from './buscaVivaService.js';
 import { somenteDigitos } from './fase6Utils.js';
 
-const ACTIVE_HINTS = ['ATIVO', 'AUTOR', 'REQUERENTE', 'EXEQUENTE', 'IMPETRANTE', 'RECORRENTE', 'AGRAVANTE', 'RECLAMANTE'];
-const PASSIVE_HINTS = ['PASSIVO', 'REU', 'RÉU', 'REQUERIDO', 'EXECUTADO', 'IMPETRADO', 'RECORRIDO', 'AGRAVADO', 'RECLAMADO'];
+const ACTIVE_HINTS = ['ATIVA', 'ATIVO', 'AUTOR', 'REQUERENTE', 'EXEQUENTE', 'IMPETRANTE', 'RECORRENTE', 'AGRAVANTE', 'RECLAMANTE'];
+const PASSIVE_HINTS = ['PASSIVA', 'PASSIVO', 'REU', 'RÉU', 'REQUERIDO', 'EXECUTADO', 'IMPETRADO', 'RECORRIDO', 'AGRAVADO', 'RECLAMADO'];
 
 export function normalizarConsultaOab({ termo, uf, oab } = {}) {
   const explicitUf = String(uf || '').replace(/[^a-z]/gi, '').toUpperCase().slice(0, 2);
@@ -81,19 +81,50 @@ function normalizarParte(parte = {}, index = 0) {
     tipo: parte.tipo || parte.type || parte.tipo_pessoa || parte.tipoPessoa || 'nao_informado',
     polo: parte.polo || parte.role || parte.tipo_parte || parte.tipoParte || '',
     documento: parte.documento || parte.cpf_cnpj || parte.document || null,
+    fonte: parte.fonte || parte.source || 'datajud',
+    confianca: Number(parte.confianca || parte.confidence || 0.9),
     advogados,
     raw: parte,
   };
 }
 
-function agruparPartes(partes = []) {
+function criarPartesFallback(base = {}) {
+  const partes = [];
+
+  if (base.parte_ativa) {
+    partes.push({
+      nome: base.parte_ativa,
+      tipo: 'parte_ativa',
+      polo: 'ativa',
+      fonte: 'indice_publico',
+      confianca: 0.75,
+    });
+  }
+
+  if (base.parte_passiva) {
+    partes.push({
+      nome: base.parte_passiva,
+      tipo: 'parte_passiva',
+      polo: 'passiva',
+      fonte: 'indice_publico',
+      confianca: 0.75,
+    });
+  }
+
+  return partes;
+}
+
+function agruparPartes(partes = [], base = {}) {
   const grupos = { ativa: [], passiva: [], outras: [], todas: [] };
-  partes.forEach((parte, index) => {
+  const fontePartes = Array.isArray(partes) && partes.length ? partes : criarPartesFallback(base);
+
+  fontePartes.forEach((parte, index) => {
     const normalizada = normalizarParte(parte, index);
     const grupo = classificarPolo(normalizada);
     grupos[grupo].push(normalizada);
     grupos.todas.push(normalizada);
   });
+
   return grupos;
 }
 
@@ -155,8 +186,9 @@ function montarProcessoPadronizado({ item, detalhe, detalheErro, consulta }) {
   const base = resumoDeProcessoBasico(item);
   const capa = detalhe?.capa || {};
   const tribunal = detalhe?.tribunal || {};
-  const partes = agruparPartes(Array.isArray(detalhe?.partes) ? detalhe.partes : []);
+  const partes = agruparPartes(Array.isArray(detalhe?.partes) ? detalhe.partes : [], base);
   const vinculoOab = extrairVinculoOab(partes, consulta);
+  const possuiPartesFallback = partes.todas.some((parte) => parte.fonte === 'indice_publico');
 
   return {
     ...base,
@@ -181,9 +213,11 @@ function montarProcessoPadronizado({ item, detalhe, detalheErro, consulta }) {
       indice_publico: true,
       djen: true,
       datajud_detalhado: Boolean(detalhe),
+      partes_fallback_indice: possuiPartesFallback,
     },
     alertas: [
       ...(detalheErro ? [`Não foi possível detalhar no DataJud: ${detalheErro}`] : []),
+      ...(possuiPartesFallback ? ['Partes estruturadas a partir do índice público/DJEN; confirme antes de vincular ao cliente.'] : []),
       ...(vinculoOab.partes_sugeridas.length ? [] : ['Confirme manualmente qual parte é cliente antes de importar para CRM.']),
     ],
   };
@@ -249,6 +283,7 @@ export async function buscarProcessosPorOabRobusto({ termo, uf, oab, limiteDjen 
     metricas: {
       processos_unicos: processos.length,
       detalhados_datajud: processos.filter((item) => item.fontes?.datajud_detalhado).length,
+      com_partes_estruturadas: processos.filter((item) => item.partes?.todas?.length).length,
       djen_total: diagnostico.djen_total || buscaViva?.enriquecimento?.total_djen || 0,
       cnjs_extraidos_djen: diagnostico.cnjs_extraidos_djen || 0,
       busca_final_total: diagnostico.busca_final_total || processos.length,
