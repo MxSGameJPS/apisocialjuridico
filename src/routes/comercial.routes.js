@@ -6,6 +6,13 @@ import { gerarDossiePublico } from '../modules/publico/dossieService.js';
 import { buscarProcessosPorOabRobusto } from '../modules/publico/oabRobustaService.js';
 import { montarTimelineProcessual } from '../modules/publico/timelineService.js';
 import {
+  criarMonitoramentoPlataforma,
+  executarMonitoramentosPlataforma,
+  listarEventosPlataforma,
+  listarMonitoramentosPlataforma,
+  marcarEventosLidosPlataforma,
+} from '../modules/comercial/monitoramentoPlataformaService.js';
+import {
   alterarStatusApiKey,
   criarApiKeyComercial,
   criarClienteComercial,
@@ -69,9 +76,52 @@ const oabComercialSchema = z.object({
   data_fim: z.string().optional().nullable(),
 });
 
+const criarMonitoramentoSchema = z.object({
+  tipo: z.enum(['oab', 'cnj']),
+  valor: z.string().optional().nullable(),
+  termo: z.string().optional().nullable(),
+  uf: z.string().optional().nullable(),
+  oab: z.string().optional().nullable(),
+  numero_cnj: z.string().optional().nullable(),
+  plataforma_ref: z.string().optional().nullable(),
+  webhook_url: z.string().url().optional().nullable(),
+  filtros: z.record(z.any()).optional().default({}),
+  frequencia_minutos: z.coerce.number().int().min(30).max(10080).optional().default(360),
+  ativo: z.boolean().optional().default(true),
+});
+
+const listarMonitoramentosSchema = z.object({
+  ativo: z.boolean().optional().nullable(),
+  limite: z.coerce.number().int().min(1).max(500).optional().default(100),
+});
+
+const executarMonitoramentosSchema = z.object({
+  monitoramento_id: z.string().uuid().optional().nullable(),
+  limite_monitoramentos: z.coerce.number().int().min(1).max(100).optional().default(25),
+  limite_por_monitoramento: z.coerce.number().int().min(1).max(30).optional().default(20),
+});
+
+const listarEventosSchema = z.object({
+  monitoramento_id: z.string().uuid().optional().nullable(),
+  lido: z.boolean().optional().nullable(),
+  limite: z.coerce.number().int().min(1).max(500).optional().default(100),
+});
+
+const marcarEventosSchema = z.object({
+  ids: z.array(z.string().uuid()).min(1),
+  lido: z.boolean().optional().default(true),
+});
+
 async function comercialPreHandler(request, reply) {
   const authResult = await commercialAuth(request, reply);
   return authResult;
+}
+
+function commercialContext(request) {
+  return {
+    clienteId: request.apiComercial?.cliente?.id || null,
+    apiKeyId: request.apiComercial?.apiKey?.id || null,
+  };
 }
 
 export async function comercialRoutes(app) {
@@ -142,6 +192,60 @@ export async function comercialRoutes(app) {
     } catch (error) {
       return reply.code(error.statusCode || 500).send({ success: false, message: error.message || 'Erro ao buscar processos por OAB.' });
     }
+  });
+
+  app.post('/api/v1/monitoramentos', { preHandler: comercialPreHandler }, async (request, reply) => {
+    const parsed = criarMonitoramentoSchema.safeParse(request.body || {});
+    if (!parsed.success) return reply.code(400).send({ success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors });
+    const ctx = commercialContext(request);
+    const data = await criarMonitoramentoPlataforma({
+      tipo: parsed.data.tipo,
+      valor: parsed.data.valor,
+      termo: parsed.data.termo,
+      uf: parsed.data.uf,
+      oab: parsed.data.oab,
+      numero_cnj: parsed.data.numero_cnj,
+      clienteId: ctx.clienteId,
+      apiKeyId: ctx.apiKeyId,
+      plataformaRef: parsed.data.plataforma_ref,
+      webhookUrl: parsed.data.webhook_url,
+      filtros: parsed.data.filtros,
+      frequenciaMinutos: parsed.data.frequencia_minutos,
+      ativo: parsed.data.ativo,
+    });
+    return { success: true, message: 'Monitoramento criado ou atualizado.', data };
+  });
+
+  app.post('/api/v1/monitoramentos/listar', { preHandler: comercialPreHandler }, async (request, reply) => {
+    const parsed = listarMonitoramentosSchema.safeParse(request.body || {});
+    if (!parsed.success) return reply.code(400).send({ success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors });
+    const ctx = commercialContext(request);
+    const data = await listarMonitoramentosPlataforma({ clienteId: ctx.clienteId, ativo: parsed.data.ativo, limite: parsed.data.limite });
+    return { success: true, message: 'Monitoramentos listados.', data: { total: data.length, monitoramentos: data } };
+  });
+
+  app.post('/api/v1/monitoramentos/executar', { preHandler: comercialPreHandler }, async (request, reply) => {
+    const parsed = executarMonitoramentosSchema.safeParse(request.body || {});
+    if (!parsed.success) return reply.code(400).send({ success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors });
+    const ctx = commercialContext(request);
+    const data = await executarMonitoramentosPlataforma({ clienteId: ctx.clienteId, monitoramentoId: parsed.data.monitoramento_id, limiteMonitoramentos: parsed.data.limite_monitoramentos, limitePorMonitoramento: parsed.data.limite_por_monitoramento });
+    return { success: true, message: 'Monitoramentos executados.', data };
+  });
+
+  app.post('/api/v1/eventos', { preHandler: comercialPreHandler }, async (request, reply) => {
+    const parsed = listarEventosSchema.safeParse(request.body || {});
+    if (!parsed.success) return reply.code(400).send({ success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors });
+    const ctx = commercialContext(request);
+    const data = await listarEventosPlataforma({ clienteId: ctx.clienteId, monitoramentoId: parsed.data.monitoramento_id, lido: parsed.data.lido, limite: parsed.data.limite });
+    return { success: true, message: 'Eventos listados.', data: { total: data.length, eventos: data } };
+  });
+
+  app.post('/api/v1/eventos/marcar-lido', { preHandler: comercialPreHandler }, async (request, reply) => {
+    const parsed = marcarEventosSchema.safeParse(request.body || {});
+    if (!parsed.success) return reply.code(400).send({ success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors });
+    const ctx = commercialContext(request);
+    const data = await marcarEventosLidosPlataforma({ clienteId: ctx.clienteId, ids: parsed.data.ids, lido: parsed.data.lido });
+    return { success: true, message: 'Eventos atualizados.', data: { total: data.length, eventos: data } };
   });
 
   app.post('/api/v1/dossie', { preHandler: comercialPreHandler }, async (request, reply) => {
