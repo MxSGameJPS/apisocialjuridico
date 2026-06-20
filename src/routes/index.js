@@ -1,4 +1,5 @@
 import { comercialRoutes } from './comercial.routes.js';
+import { cpfResolverRoutes } from './cpf-resolver.routes.js';
 import { djenRoutes } from './djen.routes.js';
 import { frontendRoutes } from './frontend.routes.js';
 import { healthRoutes } from './health.routes.js';
@@ -23,13 +24,14 @@ export async function registerRoutes(app) {
   await app.register(publicoFase789Routes);
   await app.register(publicoFase10Routes);
   await app.register(publicoLiveRoutes);
+  await app.register(cpfResolverRoutes);
   await app.register(comercialRoutes);
 
   app.get('/', async () => ({
     success: true,
     service: 'API Social Jurídico',
-    version: '1.2.0',
-    message: 'API processual com frontend público, busca viva, API comercial e inteligência jurídica.',
+    version: '1.3.0',
+    message: 'API processual com frontend público, busca viva, resolvedor CPF/CNPJ, API comercial e inteligência jurídica.',
     app: '/app',
     docs: '/docs',
   }));
