@@ -2,6 +2,7 @@ import { buscarProcessoPorNumero } from '../processos/processoService.js';
 import { buscarProcessosFullText } from './buscaFullTextService.js';
 import { buscarPorAdvogado, buscarPorCpfCnpj, buscarPorNome } from './buscaEntidadeService.js';
 import { resolverCpfCnpj } from './cpfResolverService.js';
+import { buscarIndiceDosProcessosVinculados } from './cpfProcessoVinculoService.js';
 import { enriquecerBuscaPublicaDjen } from './enriquecimentoPublicoService.js';
 import { extrairEntidadesDeProcesso } from './extratorEntidadesService.js';
 import { somenteDigitos } from './fase6Utils.js';
@@ -66,7 +67,7 @@ function normalizarResultado(item, score = 85) {
   };
 }
 
-function mesclarResultados({ buscaFinal, buscaEspecializada, buscasResolvidas = [], enriquecimento, diagnosticoCnj }) {
+function mesclarResultados({ buscaFinal, buscaEspecializada, buscasResolvidas = [], processosVinculados = [], enriquecimento, diagnosticoCnj }) {
   const mapa = new Map();
 
   for (const item of buscaFinal?.resultados || []) {
@@ -76,6 +77,11 @@ function mesclarResultados({ buscaFinal, buscaEspecializada, buscasResolvidas = 
 
   for (const item of buscaEspecializada?.resultados || []) {
     const normalizado = normalizarResultado(item, item.score || 90);
+    if (normalizado) mapa.set(normalizado.numero_cnj, normalizado);
+  }
+
+  for (const item of processosVinculados || []) {
+    const normalizado = normalizarResultado(item, item.score || 98);
     if (normalizado) mapa.set(normalizado.numero_cnj, normalizado);
   }
 
@@ -134,12 +140,14 @@ async function executarBuscaEspecializada({ tipoDetectado, termoBusca, limite })
 }
 
 async function executarBuscaPorCpfResolvido({ tipoDetectado, limite }) {
-  if (tipoDetectado.tipo !== 'cpf_cnpj') return { resolucao: null, buscas: [] };
+  if (tipoDetectado.tipo !== 'cpf_cnpj') return { resolucao: null, buscas: [], vinculos: [], processosVinculados: [] };
 
   const resolucao = await resolverCpfCnpj(tipoDetectado.digitos);
-  if (!resolucao) return { resolucao: null, buscas: [] };
+  const { vinculos, processos } = await buscarIndiceDosProcessosVinculados(tipoDetectado.digitos);
 
-  const nomes = [resolucao.nome_principal, ...(resolucao.nomes_relacionados || [])].filter(Boolean);
+  if (!resolucao) return { resolucao: null, buscas: [], vinculos, processosVinculados: processos };
+
+  const nomes = [...new Set([resolucao.nome_principal, ...(resolucao.nomes_relacionados || [])].filter(Boolean))];
   const buscas = [];
 
   for (const nome of nomes) {
@@ -147,7 +155,7 @@ async function executarBuscaPorCpfResolvido({ tipoDetectado, limite }) {
     buscas.push({ nome, ...resultadoNome });
   }
 
-  return { resolucao, buscas };
+  return { resolucao, buscas, vinculos, processosVinculados: processos };
 }
 
 export async function buscaVivaProcessual({ termo, tribunal = null, pagina = 1, porPagina = 20, enriquecer = true, limiteDjen = 10, dataInicio = null, dataFim = null } = {}) {
@@ -181,7 +189,7 @@ export async function buscaVivaProcessual({ termo, tribunal = null, pagina = 1, 
   }
 
   const buscaFinalOriginal = await buscarProcessosFullText({ termo: termoBusca, tribunal, pagina, porPagina, ordenarPor: 'relevancia' });
-  const buscaFinal = mesclarResultados({ buscaFinal: buscaFinalOriginal, buscaEspecializada, buscasResolvidas: buscaCpfResolvido.buscas, enriquecimento, diagnosticoCnj });
+  const buscaFinal = mesclarResultados({ buscaFinal: buscaFinalOriginal, buscaEspecializada, buscasResolvidas: buscaCpfResolvido.buscas, processosVinculados: buscaCpfResolvido.processosVinculados, enriquecimento, diagnosticoCnj });
 
   return {
     origem: diagnosticoCnj?.indexado ? 'busca_viva_datajud' : 'busca_viva_djen_especializada',
@@ -195,6 +203,7 @@ export async function buscaVivaProcessual({ termo, tribunal = null, pagina = 1, 
         nomes_relacionados: buscaCpfResolvido.resolucao.nomes_relacionados,
         confianca: buscaCpfResolvido.resolucao.confianca,
       } : null,
+      processos_vinculados: buscaCpfResolvido.vinculos || [],
       busca_especializada: buscaEspecializada,
       buscas_por_nome_resolvido: buscaCpfResolvido.buscas,
       resumo: enriquecimento?.resumo || null,
@@ -209,6 +218,7 @@ export async function buscaVivaProcessual({ termo, tribunal = null, pagina = 1, 
       cpf_cnpj_detectado: tipoDetectado.tipo === 'cpf_cnpj',
       cpf_resolvido: Boolean(buscaCpfResolvido.resolucao),
       cpf_nome_resolvido: buscaCpfResolvido.resolucao?.nome_principal || null,
+      cpf_processos_vinculados: buscaCpfResolvido.vinculos?.length || 0,
       oab_detectada: tipoDetectado.tipo === 'oab',
       datajud_direto: diagnosticoCnj,
       busca_especializada_total_indice: buscaEspecializada?.total_indice || 0,
