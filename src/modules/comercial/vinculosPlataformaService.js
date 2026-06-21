@@ -32,6 +32,11 @@ function normalizarOab({ uf, oab, termo } = {}) {
   return { uf: consulta.uf, oab: consulta.oab, oab_normalizada: `${consulta.uf}:${consulta.oab}` };
 }
 
+function aplicarFiltroPlataforma(query, plataformaRef) {
+  if (plataformaRef) return query.eq('plataforma_ref', plataformaRef);
+  return query.is('plataforma_ref', null);
+}
+
 async function registrarAuditoria({ vinculoId = null, clienteId = null, ownerRef = null, acao, payload = {} }) {
   const { error } = await supabaseAdmin
     .from(AUDITORIA_TABLE)
@@ -99,6 +104,7 @@ export async function confirmarVinculoProcessualPlataforma(input = {}) {
   else query = query.eq('owner_ref', vinculo.owner_ref || 'interno');
   if (vinculo.parte_polo) query = query.eq('parte_polo', vinculo.parte_polo);
   else query = query.is('parte_polo', null);
+  query = aplicarFiltroPlataforma(query, vinculo.plataforma_ref);
 
   const { data: existing, error: existingError } = await query.maybeSingle();
   if (existingError) throw new Error(`Erro ao verificar vinculo existente: ${existingError.message}`);
@@ -127,7 +133,7 @@ export async function confirmarVinculoProcessualPlataforma(input = {}) {
   return { ...data, atualizado: false };
 }
 
-export async function listarVinculosProcessuaisPlataforma({ clienteId = null, ownerRef = null, numeroCnj = null, numero_cnj = null, uf = null, oab = null, termoOab = null, tipoVinculo = null, ativo = true, limite = 100 } = {}) {
+export async function listarVinculosProcessuaisPlataforma({ clienteId = null, ownerRef = null, plataformaRef = null, numeroCnj = null, numero_cnj = null, uf = null, oab = null, termoOab = null, tipoVinculo = null, ativo = true, limite = 100 } = {}) {
   let query = supabaseAdmin
     .from(VINCULOS_TABLE)
     .select('*')
@@ -136,6 +142,7 @@ export async function listarVinculosProcessuaisPlataforma({ clienteId = null, ow
 
   if (clienteId) query = query.eq('cliente_id', clienteId);
   if (ownerRef) query = query.eq('owner_ref', ownerRef);
+  if (plataformaRef) query = query.eq('plataforma_ref', plataformaRef);
   if (ativo !== null && ativo !== undefined) query = query.eq('ativo', Boolean(ativo));
 
   const cnj = somenteDigitos(numeroCnj || numero_cnj || '');
@@ -150,7 +157,7 @@ export async function listarVinculosProcessuaisPlataforma({ clienteId = null, ow
   return data || [];
 }
 
-export async function desativarVinculoProcessualPlataforma({ id, clienteId = null, ownerRef = null, motivo = null } = {}) {
+export async function desativarVinculoProcessualPlataforma({ id, clienteId = null, ownerRef = null, plataformaRef = null, motivo = null } = {}) {
   if (!id) {
     const error = new Error('Informe o ID do vinculo.');
     error.statusCode = 400;
@@ -165,11 +172,12 @@ export async function desativarVinculoProcessualPlataforma({ id, clienteId = nul
 
   if (clienteId) query = query.eq('cliente_id', clienteId);
   if (ownerRef) query = query.eq('owner_ref', ownerRef);
+  if (plataformaRef) query = query.eq('plataforma_ref', plataformaRef);
 
   const { data, error } = await query;
   if (error) throw new Error(`Erro ao desativar vinculo: ${error.message}`);
   const vinculo = data?.[0] || null;
-  if (vinculo) await registrarAuditoria({ vinculoId: id, clienteId, ownerRef, acao: 'desativado', payload: { motivo } });
+  if (vinculo) await registrarAuditoria({ vinculoId: id, clienteId, ownerRef, acao: 'desativado', payload: { motivo, plataformaRef } });
   return vinculo;
 }
 
@@ -192,7 +200,7 @@ function vinculoParaResumo(vinculo = {}) {
   };
 }
 
-export async function aplicarVinculosConfirmadosNosProcessos(resultado = {}, { clienteId = null, ownerRef = null, uf = null, oab = null } = {}) {
+export async function aplicarVinculosConfirmadosNosProcessos(resultado = {}, { clienteId = null, ownerRef = null, plataformaRef = null, uf = null, oab = null } = {}) {
   const processos = Array.isArray(resultado.processos) ? resultado.processos : [];
   if (!processos.length) return resultado;
 
@@ -207,6 +215,7 @@ export async function aplicarVinculosConfirmadosNosProcessos(resultado = {}, { c
 
   if (clienteId) query = query.eq('cliente_id', clienteId);
   if (ownerRef) query = query.eq('owner_ref', ownerRef);
+  query = aplicarFiltroPlataforma(query, plataformaRef);
   if (oabData.oab_normalizada) query = query.eq('oab_normalizada', oabData.oab_normalizada);
 
   const { data, error } = await query;
