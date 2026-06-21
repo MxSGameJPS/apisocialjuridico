@@ -44,8 +44,8 @@ export async function registerRoutes(app) {
   app.get('/', async () => ({
     success: true,
     service: 'API Social Juridico',
-    version: '1.4.7',
-    message: 'API processual com busca viva, monitoramento para plataformas, eventos, webhooks profissionais com HMAC e retry, feedback loop, enriquecimento em lote, vinculos confirmados, payload CRM, API comercial e inteligencia juridica.',
+    version: '1.4.8',
+    message: 'API processual com busca viva, monitoramento para plataformas, eventos, webhooks profissionais com HMAC e retry, feedback loop, enriquecimento em lote, dashboard comercial, billing tecnico, logs, vinculos confirmados, payload CRM, API comercial e inteligencia juridica.',
     app: '/app',
     docs: '/docs',
   }));
