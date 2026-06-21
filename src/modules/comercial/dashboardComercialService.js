@@ -150,6 +150,22 @@ async function contarTabela(nomeTabela, filtros = {}) {
   return count || 0;
 }
 
+async function contarEventosOperacionais({ clienteId = null, ownerRef = null } = {}) {
+  let query = supabaseAdmin.from('api_monitoramento_eventos').select('id', { count: 'exact', head: true });
+
+  if (clienteId) query = query.eq('cliente_id', clienteId);
+  if (!clienteId && ownerRef) {
+    query = supabaseAdmin
+      .from('api_monitoramento_eventos')
+      .select('id, api_monitoramentos_plataforma!inner(owner_ref)', { count: 'exact', head: true })
+      .eq('api_monitoramentos_plataforma.owner_ref', ownerRef);
+  }
+
+  const { count, error } = await query;
+  if (error) return null;
+  return count || 0;
+}
+
 async function indicadoresOperacionais({ clienteId = null, ownerRef = null } = {}) {
   const filtroCliente = clienteId ? { cliente_id: clienteId } : {};
   const filtroOwner = !clienteId && ownerRef ? { owner_ref: ownerRef } : {};
@@ -157,7 +173,7 @@ async function indicadoresOperacionais({ clienteId = null, ownerRef = null } = {
 
   const [monitoramentos, eventos, webhooks, vinculos, feedbacks] = await Promise.all([
     contarTabela('api_monitoramentos_plataforma', filtros),
-    contarTabela('api_monitoramento_eventos', filtros),
+    contarEventosOperacionais({ clienteId, ownerRef }),
     contarTabela('api_webhook_outbox', filtros),
     contarTabela('api_vinculos_processuais_plataforma', filtros),
     contarTabela('api_feedback_processual_plataforma', filtros),
