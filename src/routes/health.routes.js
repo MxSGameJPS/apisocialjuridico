@@ -1,10 +1,20 @@
+import { internalAuth } from '../middlewares/internalAuth.js';
+import { healthLiveness, healthReadiness, infraStatusDetalhado } from '../modules/infra/healthService.js';
+
 export async function healthRoutes(app) {
-  app.get('/health', async () => {
-    return {
-      success: true,
-      service: 'apisocialjuridico',
-      status: 'online',
-      timestamp: new Date().toISOString(),
-    };
+  app.get('/health', async () => healthLiveness());
+
+  app.get('/health/live', async () => healthLiveness());
+
+  app.get('/health/ready', async (request, reply) => {
+    const data = await healthReadiness();
+    if (!data.success) return reply.code(503).send(data);
+    return data;
+  });
+
+  app.get('/api/infra/status', { preHandler: internalAuth }, async (request, reply) => {
+    const data = await infraStatusDetalhado();
+    if (!data.success) return reply.code(503).send(data);
+    return data;
   });
 }
