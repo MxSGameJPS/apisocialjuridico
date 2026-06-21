@@ -6,12 +6,18 @@ import { env } from './config/env.js';
 import { openApiDocument } from './docs/openapi-1-4-8.js';
 import { iniciarMonitoramentoDjenAutomatico, pararMonitoramentoDjenAutomatico } from './jobs/djenMonitorJob.js';
 import { iniciarMonitoramentoAutomatico, pararMonitoramentoAutomatico } from './jobs/processMonitorJob.js';
+import { aplicarHeadersSeguranca } from './middlewares/securityHeaders.js';
 import { registerRoutes } from './routes/index.js';
 
 export async function buildApp() {
   const app = Fastify({
     logger: env.NODE_ENV !== 'test',
+    trustProxy: true,
+    requestIdHeader: 'x-request-id',
+    genReqId: () => crypto.randomUUID(),
   });
+
+  app.addHook('onRequest', aplicarHeadersSeguranca);
 
   await app.register(cors, {
     origin: env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN,
@@ -49,6 +55,7 @@ export async function buildApp() {
       success: false,
       message: error.message || 'Erro interno da API.',
       externalStatus: error.externalStatus,
+      request_id: request.id,
     });
   });
 
