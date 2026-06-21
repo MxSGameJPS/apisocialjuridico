@@ -22,10 +22,15 @@ function eventHash(parts = []) {
   return crypto.createHash('sha256').update(parts.filter(Boolean).join('|')).digest('hex');
 }
 
+function aplicarFiltroPlataforma(query, plataformaRef) {
+  if (plataformaRef) return query.eq('plataforma_ref', plataformaRef);
+  return query.is('plataforma_ref', null);
+}
+
 function normalizarTipo(value) {
   const tipo = String(value || '').toLowerCase().trim();
   if (tipo === 'oab' || tipo === 'cnj') return tipo;
-  const error = new Error('Tipo de monitoramento inválido. Use oab ou cnj.');
+  const error = new Error('Tipo de monitoramento invalido. Use oab ou cnj.');
   error.statusCode = 400;
   throw error;
 }
@@ -53,7 +58,7 @@ function normalizarMonitoramentoEntrada(payload = {}) {
 
   const cnj = somenteDigitos(payload.numero_cnj || payload.numeroCnj || payload.valor || payload.termo);
   if (cnj.length !== 20) {
-    const error = new Error('Informe um número CNJ válido com 20 dígitos.');
+    const error = new Error('Informe um numero CNJ valido com 20 digitos.');
     error.statusCode = 400;
     throw error;
   }
@@ -115,6 +120,7 @@ export async function criarMonitoramentoPlataforma({
 
   if (clienteId) query = query.eq('cliente_id', clienteId);
   else query = query.eq('owner_ref', ownerRef || 'interno');
+  query = aplicarFiltroPlataforma(query, plataformaRef);
 
   const { data: existing, error: existingError } = await query.maybeSingle();
   if (existingError) throw new Error(`Erro ao verificar monitoramento existente: ${existingError.message}`);
@@ -141,7 +147,7 @@ export async function criarMonitoramentoPlataforma({
   return { ...data, atualizado: false };
 }
 
-export async function listarMonitoramentosPlataforma({ clienteId = null, ownerRef = null, ativo = null, limite = 100 } = {}) {
+export async function listarMonitoramentosPlataforma({ clienteId = null, ownerRef = null, plataformaRef = null, ativo = null, limite = 100 } = {}) {
   let query = supabaseAdmin
     .from(MONITORAMENTOS_TABLE)
     .select('*')
@@ -150,6 +156,7 @@ export async function listarMonitoramentosPlataforma({ clienteId = null, ownerRe
 
   if (clienteId) query = query.eq('cliente_id', clienteId);
   if (ownerRef) query = query.eq('owner_ref', ownerRef);
+  if (plataformaRef) query = query.eq('plataforma_ref', plataformaRef);
   if (ativo !== null && ativo !== undefined) query = query.eq('ativo', Boolean(ativo));
 
   const { data, error } = await query;
@@ -261,7 +268,7 @@ async function executarMonitoramentoOab(monitoramento, { limitePorMonitoramento 
         monitoramento,
         tipo: 'publicacao_djen',
         numeroCnj: processo.numero_cnj,
-        titulo: processo.ultima_publicacao_tipo || 'Publicação DJEN encontrada',
+        titulo: processo.ultima_publicacao_tipo || 'Publicacao DJEN encontrada',
         descricao: processo.resumo_ia || [processo.parte_ativa, processo.parte_passiva].filter(Boolean).join(' x '),
         fonte: 'DJEN',
         dataEvento: processo.ultima_publicacao_em,
@@ -314,7 +321,7 @@ async function atualizarMonitoramentoExecutado(monitoramento, { status, mensagem
   if (error) throw new Error(`Erro ao atualizar monitoramento executado: ${error.message}`);
 }
 
-export async function executarMonitoramentosPlataforma({ clienteId = null, ownerRef = null, monitoramentoId = null, limiteMonitoramentos = 25, limitePorMonitoramento = 20 } = {}) {
+export async function executarMonitoramentosPlataforma({ clienteId = null, ownerRef = null, plataformaRef = null, monitoramentoId = null, limiteMonitoramentos = 25, limitePorMonitoramento = 20 } = {}) {
   let query = supabaseAdmin
     .from(MONITORAMENTOS_TABLE)
     .select('*')
@@ -325,6 +332,7 @@ export async function executarMonitoramentosPlataforma({ clienteId = null, owner
   if (monitoramentoId) query = query.eq('id', monitoramentoId);
   if (clienteId) query = query.eq('cliente_id', clienteId);
   if (ownerRef) query = query.eq('owner_ref', ownerRef);
+  if (plataformaRef) query = query.eq('plataforma_ref', plataformaRef);
 
   const { data: monitoramentos, error } = await query;
   if (error) throw new Error(`Erro ao carregar monitoramentos: ${error.message}`);
@@ -346,6 +354,7 @@ export async function executarMonitoramentosPlataforma({ clienteId = null, owner
         monitoramento_id: monitoramento.id,
         tipo: monitoramento.tipo,
         valor: monitoramento.valor,
+        plataforma_ref: monitoramento.plataforma_ref,
         status: 'sucesso',
         novos_eventos: execucao.eventos.length,
         eventos: execucao.eventos,
@@ -360,6 +369,7 @@ export async function executarMonitoramentosPlataforma({ clienteId = null, owner
         monitoramento_id: monitoramento.id,
         tipo: monitoramento.tipo,
         valor: monitoramento.valor,
+        plataforma_ref: monitoramento.plataforma_ref,
         status: 'erro',
         mensagem: error.message,
       });
@@ -377,15 +387,16 @@ export async function executarMonitoramentosPlataforma({ clienteId = null, owner
   };
 }
 
-export async function listarEventosPlataforma({ clienteId = null, ownerRef = null, monitoramentoId = null, lido = null, limite = 100 } = {}) {
+export async function listarEventosPlataforma({ clienteId = null, ownerRef = null, plataformaRef = null, monitoramentoId = null, lido = null, limite = 100 } = {}) {
   let query = supabaseAdmin
     .from(EVENTOS_TABLE)
-    .select('*, api_monitoramentos_plataforma!inner(owner_ref)')
+    .select('*, api_monitoramentos_plataforma!inner(owner_ref, plataforma_ref)')
     .order('created_at', { ascending: false })
     .limit(Math.min(Number(limite || 100), 500));
 
   if (clienteId) query = query.eq('cliente_id', clienteId);
   if (ownerRef) query = query.eq('api_monitoramentos_plataforma.owner_ref', ownerRef);
+  if (plataformaRef) query = query.eq('api_monitoramentos_plataforma.plataforma_ref', plataformaRef);
   if (monitoramentoId) query = query.eq('monitoramento_id', monitoramentoId);
   if (lido !== null && lido !== undefined) query = query.eq('lido', Boolean(lido));
 
