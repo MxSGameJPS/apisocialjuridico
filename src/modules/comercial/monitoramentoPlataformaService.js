@@ -3,6 +3,7 @@ import { supabaseAdmin } from '../../clients/supabase.js';
 import { buscarProcessosPorOabRobusto, normalizarConsultaOab } from '../publico/oabRobustaService.js';
 import { montarTimelineProcessual } from '../publico/timelineService.js';
 import { somenteDigitos } from '../publico/fase6Utils.js';
+import { criarWebhookOutboxParaEvento } from './webhookOutboxService.js';
 
 const MONITORAMENTOS_TABLE = 'api_monitoramentos_plataforma';
 const EVENTOS_TABLE = 'api_monitoramento_eventos';
@@ -156,6 +157,15 @@ export async function listarMonitoramentosPlataforma({ clienteId = null, ownerRe
   return data || [];
 }
 
+async function registrarWebhookOutboxSeguro({ monitoramento, evento }) {
+  try {
+    const entrega = await criarWebhookOutboxParaEvento({ monitoramento, evento });
+    return entrega?.id || null;
+  } catch (error) {
+    return { erro: error.message };
+  }
+}
+
 async function registrarEventoSeNovo({ monitoramento, tipo, numeroCnj = null, titulo = null, descricao = null, fonte = null, dataEvento = null, payload = {}, hashPublicacao = null }) {
   const chaveEvento = eventHash([
     monitoramento.id,
@@ -213,6 +223,10 @@ async function registrarEventoSeNovo({ monitoramento, tipo, numeroCnj = null, ti
     .single();
 
   if (error) throw new Error(`Erro ao registrar evento: ${error.message}`);
+
+  const outbox = await registrarWebhookOutboxSeguro({ monitoramento, evento: data });
+  if (typeof outbox === 'string') return { ...data, webhook_outbox_id: outbox };
+  if (outbox?.erro) return { ...data, webhook_outbox_error: outbox.erro };
   return data;
 }
 
