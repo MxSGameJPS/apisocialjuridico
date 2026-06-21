@@ -6,6 +6,7 @@ import { healthRoutes } from './health.routes.js';
 import { monitoramentoRoutes } from './monitoramento.routes.js';
 import { plataformaBuscaRoutes } from './plataforma-busca.routes.js';
 import { plataformaCrmRoutes } from './plataforma-crm.routes.js';
+import { plataformaEnriquecimentoRoutes } from './plataforma-enriquecimento.routes.js';
 import { plataformaFeedbackRoutes } from './plataforma-feedback.routes.js';
 import { plataformaMonitoramentoRoutes } from './plataforma-monitoramento.routes.js';
 import { plataformaVinculosRoutes } from './plataforma-vinculos.routes.js';
@@ -37,13 +38,14 @@ export async function registerRoutes(app) {
   await app.register(plataformaVinculosRoutes);
   await app.register(plataformaWebhookRoutes);
   await app.register(plataformaFeedbackRoutes);
+  await app.register(plataformaEnriquecimentoRoutes);
   await app.register(comercialRoutes);
 
   app.get('/', async () => ({
     success: true,
     service: 'API Social Juridico',
-    version: '1.4.5',
-    message: 'API processual com busca viva, monitoramento para plataformas, eventos, webhooks, feedback loop, vinculos confirmados, payload CRM, API comercial e inteligencia juridica.',
+    version: '1.4.6',
+    message: 'API processual com busca viva, monitoramento para plataformas, eventos, webhooks, feedback loop, enriquecimento em lote, vinculos confirmados, payload CRM, API comercial e inteligencia juridica.',
     app: '/app',
     docs: '/docs',
   }));
