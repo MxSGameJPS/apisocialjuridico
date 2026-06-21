@@ -44,8 +44,8 @@ export async function registerRoutes(app) {
   app.get('/', async () => ({
     success: true,
     service: 'API Social Juridico',
-    version: '1.4.11',
-    message: 'API processual com busca viva, monitoramento, eventos, webhooks profissionais, dashboard comercial, headers de seguranca, readiness, liveness, observabilidade, alertas internos e workers dedicados para webhooks e monitoramentos.',
+    version: '1.4.12',
+    message: 'API processual com busca viva, monitoramento, eventos, webhooks profissionais, dashboard comercial, seguranca HTTP, readiness, observabilidade, workers dedicados, backup seguro, restore e DRP.',
     app: '/app',
     docs: '/docs',
     health: '/health/ready',
