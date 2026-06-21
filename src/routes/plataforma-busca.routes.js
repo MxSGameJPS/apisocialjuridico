@@ -8,6 +8,7 @@ const buscaOabPlataformaSchema = z.object({
   uf: z.string().optional().nullable(),
   oab: z.string().optional().nullable(),
   owner_ref: z.string().optional().default('interno'),
+  plataforma_ref: z.string().optional().nullable(),
   limite_djen: z.coerce.number().int().min(1).max(30).optional().default(20),
   incluir_detalhes: z.boolean().optional().default(true),
   limite_detalhes: z.coerce.number().int().min(0).max(15).optional().default(10),
@@ -42,6 +43,7 @@ export async function plataformaBuscaRoutes(app) {
       if (parsed.data.incluir_vinculos_confirmados) {
         data = await aplicarVinculosConfirmadosNosProcessos(data, {
           ownerRef: parsed.data.owner_ref,
+          plataformaRef: parsed.data.plataforma_ref,
           uf: parsed.data.uf,
           oab: parsed.data.oab,
         });
