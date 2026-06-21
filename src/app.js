@@ -4,7 +4,7 @@ import cors from '@fastify/cors';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { env } from './config/env.js';
-import { openApiDocument } from './docs/openapi-1-4-8.js';
+import { openApiDocument } from './docs/openapi-1-4-9.js';
 import { iniciarMonitoramentoDjenAutomatico, pararMonitoramentoDjenAutomatico } from './jobs/djenMonitorJob.js';
 import { iniciarMonitoramentoAutomatico, pararMonitoramentoAutomatico } from './jobs/processMonitorJob.js';
 import { aplicarHeadersSeguranca } from './middlewares/securityHeaders.js';
