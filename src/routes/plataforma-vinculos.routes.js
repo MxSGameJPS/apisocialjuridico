@@ -35,6 +35,7 @@ const listarVinculosSchema = z.object({
   termo_oab: z.string().optional().nullable(),
   tipo_vinculo: z.string().optional().nullable(),
   owner_ref: z.string().optional().default('interno'),
+  plataforma_ref: z.string().optional().nullable(),
   ativo: z.boolean().optional().default(true),
   limite: z.coerce.number().int().min(1).max(500).optional().default(100),
 });
@@ -42,6 +43,7 @@ const listarVinculosSchema = z.object({
 const desativarVinculoSchema = z.object({
   id: z.string().uuid(),
   owner_ref: z.string().optional().default('interno'),
+  plataforma_ref: z.string().optional().nullable(),
   motivo: z.string().optional().nullable(),
 });
 
@@ -77,6 +79,7 @@ export async function plataformaVinculosRoutes(app) {
 
     const data = await listarVinculosProcessuaisPlataforma({
       ownerRef: parsed.data.owner_ref,
+      plataformaRef: parsed.data.plataforma_ref,
       numero_cnj: parsed.data.numero_cnj,
       uf: parsed.data.uf,
       oab: parsed.data.oab,
@@ -93,7 +96,12 @@ export async function plataformaVinculosRoutes(app) {
     const parsed = desativarVinculoSchema.safeParse(request.body || {});
     if (!parsed.success) return reply.code(400).send({ success: false, message: 'Dados inválidos.', errors: parsed.error.flatten().fieldErrors });
 
-    const data = await desativarVinculoProcessualPlataforma({ id: parsed.data.id, ownerRef: parsed.data.owner_ref, motivo: parsed.data.motivo });
+    const data = await desativarVinculoProcessualPlataforma({
+      id: parsed.data.id,
+      ownerRef: parsed.data.owner_ref,
+      plataformaRef: parsed.data.plataforma_ref,
+      motivo: parsed.data.motivo,
+    });
     return { success: true, message: 'Vínculo processual desativado.', data };
   });
 }
