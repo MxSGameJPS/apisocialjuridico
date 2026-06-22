@@ -6,6 +6,20 @@ import {
   importarProcessosEmLote,
 } from '../modules/processos/processoFase2Service.js';
 
+function booleanFlag(value, fallback = false) {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') return ['true', '1', 'yes', 'sim', 'on'].includes(value.trim().toLowerCase());
+  return Boolean(value);
+}
+
+function resumoFlags(data = {}) {
+  return {
+    gerarResumo: booleanFlag(data.gerar_resumo ?? data.gerarResumo, false),
+    forcarResumo: booleanFlag(data.forcar_resumo ?? data.forcarResumo, false),
+  };
+}
+
 const pessoaCRMSchema = z.object({
   nome: z.string().min(1, 'nome é obrigatório').optional().nullable(),
   tipo: z.enum(['pessoa_fisica', 'pessoa_juridica', 'nao_informado']).optional().nullable(),
@@ -15,6 +29,13 @@ const pessoaCRMSchema = z.object({
   observacoes: z.string().optional().nullable(),
 }).optional().nullable();
 
+const resumoFlagShape = {
+  gerar_resumo: z.union([z.boolean(), z.string()]).optional(),
+  gerarResumo: z.union([z.boolean(), z.string()]).optional(),
+  forcar_resumo: z.union([z.boolean(), z.string()]).optional(),
+  forcarResumo: z.union([z.boolean(), z.string()]).optional(),
+};
+
 const loteSchema = z.object({
   processos: z.array(z.string().min(1)).min(1, 'Informe ao menos um processo.'),
   advogado_id: z.string().min(1, 'advogado_id é obrigatório'),
@@ -22,24 +43,21 @@ const loteSchema = z.object({
   cliente: pessoaCRMSchema,
   parte_contraria: pessoaCRMSchema,
   ignorar_duplicados: z.boolean().optional().default(true),
-  gerar_resumo: z.boolean().optional().default(false),
-  forcar_resumo: z.boolean().optional().default(false),
+  ...resumoFlagShape,
 });
 
 const atualizarSchema = z.object({
   numero_processo: z.string().min(1, 'numero_processo é obrigatório'),
   advogado_id: z.string().min(1, 'advogado_id é obrigatório'),
   usuario_id: z.string().optional().nullable(),
-  gerar_resumo: z.boolean().optional().default(false),
-  forcar_resumo: z.boolean().optional().default(false),
+  ...resumoFlagShape,
 });
 
 const atualizarLoteSchema = z.object({
   processos: z.array(z.string().min(1)).min(1, 'Informe ao menos um processo.'),
   advogado_id: z.string().min(1, 'advogado_id é obrigatório'),
   usuario_id: z.string().optional().nullable(),
-  gerar_resumo: z.boolean().optional().default(false),
-  forcar_resumo: z.boolean().optional().default(false),
+  ...resumoFlagShape,
 });
 
 export async function processosFase2Routes(app) {
@@ -54,6 +72,7 @@ export async function processosFase2Routes(app) {
       });
     }
 
+    const flags = resumoFlags(parsed.data);
     const resultado = await importarProcessosEmLote({
       processos: parsed.data.processos,
       advogadoId: parsed.data.advogado_id,
@@ -61,8 +80,8 @@ export async function processosFase2Routes(app) {
       cliente: parsed.data.cliente,
       parteContraria: parsed.data.parte_contraria,
       ignorarDuplicados: parsed.data.ignorar_duplicados,
-      gerarResumo: parsed.data.gerar_resumo,
-      forcarResumo: parsed.data.forcar_resumo,
+      gerarResumo: flags.gerarResumo,
+      forcarResumo: flags.forcarResumo,
     });
 
     return {
@@ -83,12 +102,13 @@ export async function processosFase2Routes(app) {
       });
     }
 
+    const flags = resumoFlags(parsed.data);
     const resultado = await atualizarProcessoManual({
       numeroProcesso: parsed.data.numero_processo,
       advogadoId: parsed.data.advogado_id,
       usuarioId: parsed.data.usuario_id,
-      gerarResumo: parsed.data.gerar_resumo,
-      forcarResumo: parsed.data.forcar_resumo,
+      gerarResumo: flags.gerarResumo,
+      forcarResumo: flags.forcarResumo,
     });
 
     return {
@@ -109,12 +129,13 @@ export async function processosFase2Routes(app) {
       });
     }
 
+    const flags = resumoFlags(parsed.data);
     const resultado = await atualizarProcessosEmLote({
       processos: parsed.data.processos,
       advogadoId: parsed.data.advogado_id,
       usuarioId: parsed.data.usuario_id,
-      gerarResumo: parsed.data.gerar_resumo,
-      forcarResumo: parsed.data.forcar_resumo,
+      gerarResumo: flags.gerarResumo,
+      forcarResumo: flags.forcarResumo,
     });
 
     return {
