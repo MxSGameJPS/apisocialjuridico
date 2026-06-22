@@ -3,6 +3,7 @@ import { buscarProcessoNoDataJud } from '../datajud/datajudClient.js';
 import {
   detectarTribunalPorCNJ,
   formatarNumeroCNJ,
+  limparNumeroCNJ,
   validarNumeroCNJ,
 } from '../tribunais/tribunalDetector.js';
 import { normalizarProcessoDataJud } from './processoNormalizer.js';
@@ -27,7 +28,67 @@ function normalizarPessoaCRM(pessoa) {
   };
 }
 
-export async function buscarProcessoPorNumero(numeroProcesso) {
+function chaveMovimentacoes(movimentacoes = []) {
+  return JSON.stringify(
+    (movimentacoes || []).map((movimento) => ({
+      data: movimento?.data || null,
+      codigo: movimento?.codigo || null,
+      nome: movimento?.nome || null,
+    }))
+  );
+}
+
+function cacheResumoValido({ resumoCache, processo }) {
+  if (!resumoCache?.resumo_ia || !resumoCache?.resumo_ia_gerado) return false;
+  return chaveMovimentacoes(resumoCache.ultimas_movimentacoes) === chaveMovimentacoes(processo.ultimas_movimentacoes);
+}
+
+async function buscarResumoImportado({ numeroProcesso, advogadoId = null }) {
+  const numeroCnj = limparNumeroCNJ(numeroProcesso);
+
+  let query = supabaseAdmin
+    .from('processos_importados')
+    .select('id, numero_cnj, advogado_id, resumo_ia, resumo_ia_gerado, ultimas_movimentacoes')
+    .eq('numero_cnj', numeroCnj)
+    .not('resumo_ia', 'is', null)
+    .order('updated_at', { ascending: false })
+    .limit(1);
+
+  if (advogadoId) query = query.eq('advogado_id', advogadoId);
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) {
+    console.error('Erro ao buscar cache de resumo:', error.message);
+    return null;
+  }
+
+  return data || null;
+}
+
+async function resolverResumo({ processo, gerarResumo = false, forcarResumo = false, resumoCache = null }) {
+  if (!forcarResumo && resumoCache?.resumo_ia && resumoCache?.resumo_ia_gerado) {
+    const cacheValido = cacheResumoValido({ resumoCache, processo });
+
+    if (cacheValido || !gerarResumo) {
+      return {
+        resumo: resumoCache.resumo_ia,
+        gerado_por_ia: Boolean(resumoCache.resumo_ia_gerado),
+        provider: 'cache',
+        status: cacheValido ? 'cache_valido' : 'cache_preservado',
+      };
+    }
+  }
+
+  return gerarResumoProcesso(processo, { gerarResumo });
+}
+
+export async function buscarProcessoPorNumero(numeroProcesso, {
+  gerarResumo = false,
+  forcarResumo = false,
+  advogadoId = null,
+  resumoCache = null,
+} = {}) {
   if (!validarNumeroCNJ(numeroProcesso)) {
     const error = new Error('Número do processo inválido. Informe o número CNJ completo com 20 dígitos.');
     error.statusCode = 400;
@@ -59,12 +120,24 @@ export async function buscarProcessoPorNumero(numeroProcesso) {
     tribunalDetectado,
   });
 
-  const resumo = await gerarResumoProcesso(processo);
+  const cache = resumoCache || await buscarResumoImportado({
+    numeroProcesso: processo.numero_cnj || numeroProcesso,
+    advogadoId,
+  });
+
+  const resumo = await resolverResumo({
+    processo,
+    gerarResumo,
+    forcarResumo,
+    resumoCache: cache,
+  });
 
   return {
     ...processo,
     resumo_ia: resumo.resumo,
     resumo_ia_gerado: resumo.gerado_por_ia,
+    resumo_ia_provider: resumo.provider,
+    resumo_ia_status: resumo.status || (resumo.gerado_por_ia ? 'gerado' : 'nao_gerado'),
   };
 }
 
@@ -74,6 +147,8 @@ export async function baixarProcessoParaCRM({
   usuarioId = null,
   cliente = null,
   parteContraria = null,
+  gerarResumo = false,
+  forcarResumo = false,
 }) {
   if (!advogadoId) {
     const error = new Error('advogado_id é obrigatório para baixar o processo para o CRM.');
@@ -81,7 +156,13 @@ export async function baixarProcessoParaCRM({
     throw error;
   }
 
-  const processo = await buscarProcessoPorNumero(numeroProcesso);
+  const resumoCache = await buscarResumoImportado({ numeroProcesso, advogadoId });
+  const processo = await buscarProcessoPorNumero(numeroProcesso, {
+    gerarResumo,
+    forcarResumo,
+    advogadoId,
+    resumoCache,
+  });
   const clienteManual = normalizarPessoaCRM(cliente);
   const parteContrariaManual = normalizarPessoaCRM(parteContraria);
 
@@ -128,4 +209,19 @@ export async function baixarProcessoParaCRM({
     },
     registro: data,
   };
+}
+
+export async function gerarResumoParaProcessoCRM({
+  numeroProcesso,
+  advogadoId,
+  usuarioId = null,
+  forcarResumo = true,
+}) {
+  return baixarProcessoParaCRM({
+    numeroProcesso,
+    advogadoId,
+    usuarioId,
+    gerarResumo: true,
+    forcarResumo,
+  });
 }
