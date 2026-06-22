@@ -48,6 +48,8 @@ export async function importarProcessosEmLote({
   cliente = null,
   parteContraria = null,
   ignorarDuplicados = true,
+  gerarResumo = false,
+  forcarResumo = false,
 }) {
   if (!advogadoId) {
     const error = new Error('advogado_id é obrigatório para importação em lote.');
@@ -67,7 +69,7 @@ export async function importarProcessosEmLote({
 
   for (const numeroProcesso of numeros) {
     try {
-      const preview = await buscarProcessoPorNumero(numeroProcesso);
+      const preview = await buscarProcessoPorNumero(numeroProcesso, { gerarResumo: false, advogadoId });
       const existente = await buscarRegistroExistente({
         numeroCnj: preview.numero_cnj,
         advogadoId,
@@ -90,6 +92,8 @@ export async function importarProcessosEmLote({
         usuarioId,
         cliente,
         parteContraria,
+        gerarResumo,
+        forcarResumo,
       });
 
       resultados.push({
@@ -114,7 +118,13 @@ export async function importarProcessosEmLote({
   };
 }
 
-export async function atualizarProcessoManual({ numeroProcesso, advogadoId, usuarioId = null }) {
+export async function atualizarProcessoManual({
+  numeroProcesso,
+  advogadoId,
+  usuarioId = null,
+  gerarResumo = false,
+  forcarResumo = false,
+}) {
   if (!advogadoId) {
     const error = new Error('advogado_id é obrigatório para atualizar o processo.');
     error.statusCode = 400;
@@ -125,6 +135,8 @@ export async function atualizarProcessoManual({ numeroProcesso, advogadoId, usua
     numeroProcesso,
     advogadoId,
     usuarioId,
+    gerarResumo,
+    forcarResumo,
   });
 
   const { data, error } = await supabaseAdmin
@@ -151,7 +163,13 @@ export async function atualizarProcessoManual({ numeroProcesso, advogadoId, usua
   };
 }
 
-export async function atualizarProcessosEmLote({ processos, advogadoId, usuarioId = null }) {
+export async function atualizarProcessosEmLote({
+  processos,
+  advogadoId,
+  usuarioId = null,
+  gerarResumo = false,
+  forcarResumo = false,
+}) {
   const numeros = limparListaProcessos(processos);
 
   if (!numeros.length) {
@@ -168,6 +186,8 @@ export async function atualizarProcessosEmLote({ processos, advogadoId, usuarioI
         numeroProcesso,
         advogadoId,
         usuarioId,
+        gerarResumo,
+        forcarResumo,
       });
 
       resultados.push({
