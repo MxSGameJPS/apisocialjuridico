@@ -52,7 +52,11 @@ async function monitorarRegistro(registro) {
   const inicio = new Date().toISOString();
 
   try {
-    const processoAtualizado = await buscarProcessoPorNumero(registro.numero_cnj);
+    const processoAtualizado = await buscarProcessoPorNumero(registro.numero_cnj, {
+      gerarResumo: false,
+      advogadoId: registro.advogado_id,
+      resumoCache: registro,
+    });
     const novasMovimentacoes = detectarNovasMovimentacoes(
       registro.ultimas_movimentacoes || [],
       processoAtualizado.ultimas_movimentacoes || []
@@ -66,8 +70,8 @@ async function monitorarRegistro(registro) {
       demais_partes: processoAtualizado.demais_partes,
       partes: processoAtualizado.partes,
       ultimas_movimentacoes: processoAtualizado.ultimas_movimentacoes,
-      resumo_ia: processoAtualizado.resumo_ia,
-      resumo_ia_gerado: processoAtualizado.resumo_ia_gerado,
+      resumo_ia: processoAtualizado.resumo_ia || registro.resumo_ia || null,
+      resumo_ia_gerado: Boolean(processoAtualizado.resumo_ia_gerado || registro.resumo_ia_gerado),
       raw_datajud: processoAtualizado.raw,
       avisos: processoAtualizado.avisos,
       ultima_consulta: new Date().toISOString(),

@@ -42,6 +42,46 @@ API comercial:
 x-commercial-api-key: sj_live_xxxxx
 ```
 
+## Controle de custo de IA e Gemini
+
+Por segurança financeira, a API não gera resumo por IA automaticamente em buscas, importações, atualizações ou monitoramentos.
+
+Para usar Gemini como provedor paliativo:
+
+```env
+AI_PROVIDER=gemini
+GEMINI_API_KEY=sua_chave_gemini
+GEMINI_MODEL=gemini-3.5-flash
+AI_SUMMARY_ENABLED_DEFAULT=false
+AI_SUMMARY_MAX_PER_MINUTE=10
+PROCESS_MONITORING_ENABLED=false
+DJEN_MONITORING_ENABLED=false
+```
+
+Para bloquear qualquer chamada de IA:
+
+```env
+AI_PROVIDER=none
+AI_SUMMARY_ENABLED_DEFAULT=false
+```
+
+O resumo agora é opt-in por payload:
+
+```json
+{
+  "numero_processo": "15033935120258260269",
+  "advogado_id": "advogado-001",
+  "gerar_resumo": true,
+  "forcar_resumo": false
+}
+```
+
+Fluxo recomendado no produto:
+
+1. buscar ou baixar processo sem resumo;
+2. exibir botão "Gerar resumo IA";
+3. chamar novamente a rota com `gerar_resumo: true` somente por ação expressa do usuário.
+
 ## Fase 13 — Monitoramento OAB/CNJ para plataformas
 
 Guia completo:
