@@ -1,4 +1,4 @@
-import 'dotenv/config';
+﻿import 'dotenv/config';
 import { z } from 'zod';
 
 const envSchema = z.object({
@@ -21,7 +21,7 @@ const envSchema = z.object({
   DJEN_MONITORING_CRON: z.string().default('0 */6 * * *'),
 
   OPENAI_API_KEY: z.string().optional(),
-  OPENAI_MODEL: z.string().default('gpt-4.1-mini'),
+  OPENAI_MODEL: z.string().default('gemini-2.5-flash'),
 
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
 
