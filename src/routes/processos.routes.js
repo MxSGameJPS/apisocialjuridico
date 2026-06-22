@@ -5,11 +5,27 @@ import {
   buscarProcessoPorNumero,
 } from '../modules/processos/processoService.js';
 
+function booleanFlag(value, fallback = false) {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') return ['true', '1', 'yes', 'sim', 'on'].includes(value.trim().toLowerCase());
+  return Boolean(value);
+}
+
+function resumoFlags(data = {}) {
+  return {
+    gerarResumo: booleanFlag(data.gerar_resumo ?? data.gerarResumo, false),
+    forcarResumo: booleanFlag(data.forcar_resumo ?? data.forcarResumo, false),
+  };
+}
+
 const buscarProcessoSchema = z.object({
   numero_processo: z.string().min(1, 'numero_processo é obrigatório'),
   advogado_id: z.string().optional().nullable(),
-  gerar_resumo: z.boolean().optional().default(false),
-  forcar_resumo: z.boolean().optional().default(false),
+  gerar_resumo: z.union([z.boolean(), z.string()]).optional(),
+  gerarResumo: z.union([z.boolean(), z.string()]).optional(),
+  forcar_resumo: z.union([z.boolean(), z.string()]).optional(),
+  forcarResumo: z.union([z.boolean(), z.string()]).optional(),
 });
 
 const pessoaCRMSchema = z.object({
@@ -27,8 +43,10 @@ const baixarProcessoSchema = z.object({
   usuario_id: z.string().optional().nullable(),
   cliente: pessoaCRMSchema,
   parte_contraria: pessoaCRMSchema,
-  gerar_resumo: z.boolean().optional().default(false),
-  forcar_resumo: z.boolean().optional().default(false),
+  gerar_resumo: z.union([z.boolean(), z.string()]).optional(),
+  gerarResumo: z.union([z.boolean(), z.string()]).optional(),
+  forcar_resumo: z.union([z.boolean(), z.string()]).optional(),
+  forcarResumo: z.union([z.boolean(), z.string()]).optional(),
 });
 
 export async function processosRoutes(app) {
@@ -43,15 +61,16 @@ export async function processosRoutes(app) {
       });
     }
 
+    const flags = resumoFlags(parsed.data);
     const processo = await buscarProcessoPorNumero(parsed.data.numero_processo, {
       advogadoId: parsed.data.advogado_id,
-      gerarResumo: parsed.data.gerar_resumo,
-      forcarResumo: parsed.data.forcar_resumo,
+      gerarResumo: flags.gerarResumo,
+      forcarResumo: flags.forcarResumo,
     });
 
     return {
       success: true,
-      message: parsed.data.gerar_resumo
+      message: flags.gerarResumo
         ? 'Processo encontrado para conferência com resumo solicitado.'
         : 'Processo encontrado para conferência sem gerar novo resumo.',
       data: processo,
@@ -69,19 +88,20 @@ export async function processosRoutes(app) {
       });
     }
 
+    const flags = resumoFlags(parsed.data);
     const resultado = await baixarProcessoParaCRM({
       numeroProcesso: parsed.data.numero_processo,
       advogadoId: parsed.data.advogado_id,
       usuarioId: parsed.data.usuario_id,
       cliente: parsed.data.cliente,
       parteContraria: parsed.data.parte_contraria,
-      gerarResumo: parsed.data.gerar_resumo,
-      forcarResumo: parsed.data.forcar_resumo,
+      gerarResumo: flags.gerarResumo,
+      forcarResumo: flags.forcarResumo,
     });
 
     return {
       success: true,
-      message: parsed.data.gerar_resumo
+      message: flags.gerarResumo
         ? 'Processo baixado e salvo no CRM com resumo.'
         : 'Processo baixado e salvo no CRM sem gerar novo resumo.',
       data: resultado,
