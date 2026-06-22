@@ -22,18 +22,24 @@ const loteSchema = z.object({
   cliente: pessoaCRMSchema,
   parte_contraria: pessoaCRMSchema,
   ignorar_duplicados: z.boolean().optional().default(true),
+  gerar_resumo: z.boolean().optional().default(false),
+  forcar_resumo: z.boolean().optional().default(false),
 });
 
 const atualizarSchema = z.object({
   numero_processo: z.string().min(1, 'numero_processo é obrigatório'),
   advogado_id: z.string().min(1, 'advogado_id é obrigatório'),
   usuario_id: z.string().optional().nullable(),
+  gerar_resumo: z.boolean().optional().default(false),
+  forcar_resumo: z.boolean().optional().default(false),
 });
 
 const atualizarLoteSchema = z.object({
   processos: z.array(z.string().min(1)).min(1, 'Informe ao menos um processo.'),
   advogado_id: z.string().min(1, 'advogado_id é obrigatório'),
   usuario_id: z.string().optional().nullable(),
+  gerar_resumo: z.boolean().optional().default(false),
+  forcar_resumo: z.boolean().optional().default(false),
 });
 
 export async function processosFase2Routes(app) {
@@ -55,6 +61,8 @@ export async function processosFase2Routes(app) {
       cliente: parsed.data.cliente,
       parteContraria: parsed.data.parte_contraria,
       ignorarDuplicados: parsed.data.ignorar_duplicados,
+      gerarResumo: parsed.data.gerar_resumo,
+      forcarResumo: parsed.data.forcar_resumo,
     });
 
     return {
@@ -79,6 +87,8 @@ export async function processosFase2Routes(app) {
       numeroProcesso: parsed.data.numero_processo,
       advogadoId: parsed.data.advogado_id,
       usuarioId: parsed.data.usuario_id,
+      gerarResumo: parsed.data.gerar_resumo,
+      forcarResumo: parsed.data.forcar_resumo,
     });
 
     return {
@@ -103,6 +113,8 @@ export async function processosFase2Routes(app) {
       processos: parsed.data.processos,
       advogadoId: parsed.data.advogado_id,
       usuarioId: parsed.data.usuario_id,
+      gerarResumo: parsed.data.gerar_resumo,
+      forcarResumo: parsed.data.forcar_resumo,
     });
 
     return {
