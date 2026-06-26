@@ -43,7 +43,7 @@ const envSchema = z.object({
   GEMINI_BASE_URL: z.string().url().default('https://generativelanguage.googleapis.com/v1beta'),
 
   OPENAI_API_KEY: z.string().optional(),
-  OPENAI_MODEL: z.string().default('gemini-2.5-flash'),
+  OPENAI_MODEL: z.string().default('gpt-4.1-mini'),
 
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
 
